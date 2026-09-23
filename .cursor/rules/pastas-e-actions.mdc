@@ -1,0 +1,10 @@
+---
+description: Planta Laravel WWork. Actions por domínio. Consultar planos/09 do front.
+alwaysApply: true
+---
+
+# Backend
+
+Antes de criar PHP: `../planos/09-pastas-e-componentes.md` (workspace wwork) ou o mesmo arquivo no wwork-front.
+
+Escrita em `app/Actions/{Domínio}`. Controller fino. Policy + Resource para owner/invited. Serviços em `app/Services`. Filament sem Client, Visit, Invoice, Payout. Contrato em `planos/05-backend-rotas.md`.
