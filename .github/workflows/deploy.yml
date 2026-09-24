@@ -25,15 +25,15 @@ jobs:
             # 1. Entra na pasta exata do subdomínio dentro da public_html
             cd /home/${{ secrets.USERNAME }}/public_html/api.wwork.upbase.com.br
             
-            # 2. Descarta alterações locais no servidor (evita travamentos com .htaccess ou arquivos modificados)
+            # 2. Descarta alterações locais no servidor
             git fetch origin main
             git reset --hard origin/main
             
             # 3. Coloca o Laravel em modo de manutenção usando PHP 8.3
             ea-php83 artisan down || true
             
-            # 4. Instala dependências do Composer forçando o PHP 8.3
-            ea-php83 /usr/local/bin/composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            # 4. Instala dependências do Composer executando via PHP 8.3
+            PHP=ea-php83 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             
             # 5. Executa as migrations do banco de dados
             ea-php83 artisan migrate --force
