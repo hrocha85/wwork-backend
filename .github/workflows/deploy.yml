@@ -35,12 +35,12 @@ jobs:
             # 4. Garante que o composer.phar existe no projeto
             if [ ! -f composer.phar ]; then
               curl -sS https://getcomposer.org/installer -o composer-setup.php
-              ea-php83 composer-setup.php
+              ea-php83 -d allow_url_fopen=On composer-setup.php
               rm -f composer-setup.php
             fi
             
             # 5. Instala dependências do Composer forçando o PHP 8.3
-            ea-php83 composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            ea-php83 -d allow_url_fopen=On composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             
             # 6. Executa as migrations do banco de dados
             ea-php83 artisan migrate --force
