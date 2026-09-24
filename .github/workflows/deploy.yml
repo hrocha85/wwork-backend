@@ -1,0 +1,43 @@
+name: Deploy Wwork API
+
+on:
+  push:
+    branches:
+      - main # O deploy acontece sempre que você enviar código para a branch main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Executar Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # Entra na pasta do projeto (Ajuste para o nome da sua pasta)
+            cd /home/${{ secrets.USERNAME }}/wwork-api
+            
+            # Coloca o Laravel em modo de manutenção
+            php artisan down || true
+            
+            # Puxa o código novo do GitHub
+            git pull origin main
+            
+            # Instala pacotes novos do PHP (se houver) sem travar a hospedagem
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            
+            # Roda as tabelas novas do MariaDB
+            php artisan migrate --force
+            
+            # Limpa o cache para garantir que a versão nova está no ar
+            php artisan optimize:clear
+            
+            # Tira o Laravel da manutenção
+            php artisan up
