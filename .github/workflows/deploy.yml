@@ -35,13 +35,13 @@ jobs:
             # 4. Instala dependências do Composer executando via PHP 8.3
             PHP=ea-php83 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             
-            # 5. Executa as migrations do banco de dados
+            # 6. Executa as migrations do banco de dados
             ea-php83 artisan migrate --force
             
-            # 6. Limpa e recria os caches do Laravel
+            # 7. Limpa e recria os caches do Laravel
             ea-php83 artisan optimize:clear
             ea-php83 artisan config:cache
             ea-php83 artisan route:cache
             
-            # 7. Tira o Laravel do modo de manutenção
+            # 8. Tira o Laravel do modo de manutenção
             ea-php83 artisan up
