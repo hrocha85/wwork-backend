@@ -22,23 +22,25 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.PORT }}
           script: |
-            # Entra na pasta do projeto (Ajuste para o nome da sua pasta)
-            cd /home/${{ secrets.USERNAME }}/wwork-api
+            # 1. Entra na pasta do subdomínio da API
+            cd /home/${{ secrets.USERNAME }}/public_html/api.wwork.upbase.com.br
             
-            # Coloca o Laravel em modo de manutenção
+            # 2. Coloca o Laravel em modo de manutenção
             php artisan down || true
             
-            # Puxa o código novo do GitHub
+            # 3. Puxa as alterações do repositório no GitHub
             git pull origin main
             
-            # Instala pacotes novos do PHP (se houver) sem travar a hospedagem
+            # 4. Instala/atualiza dependências do PHP para produção
             composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             
-            # Roda as tabelas novas do MariaDB
+            # 5. Executa as migrations do banco de dados
             php artisan migrate --force
             
-            # Limpa o cache para garantir que a versão nova está no ar
+            # 6. Limpa e recria os caches do Laravel
             php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
             
-            # Tira o Laravel da manutenção
+            # 7. Tira o Laravel do modo de manutenção
             php artisan up
