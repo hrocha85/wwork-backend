@@ -34,7 +34,7 @@ jobs:
             
             # 4. Garante que o composer.phar existe no projeto
             if [ ! -f composer.phar ]; then
-              ea-php83 -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+              curl -sS https://getcomposer.org/installer -o composer-setup.php
               ea-php83 composer-setup.php
               rm -f composer-setup.php
             fi
