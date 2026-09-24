@@ -10,8 +10,8 @@ Lê isto no começo de **toda** tarefa. A planta das pastas e o produto estão n
 
 - Escrita: `app/Actions/{Auth|Team|Clients|Visits|Field|Invoices|Billing|Subscription|Location|OneSignal}/`
 - HTTP: `app/Http/Controllers/Api/V1`, `Requests`, `Resources`
-- Recorte owner/invited: `app/Policies` + Resource. Não no Filament e não no PWA.
-- Integrações: `app/Services` (`SeatPlan`, `InvoicePdf`, `VisitIcs`, `OneSignal`, `Money`)
+- Recorte owner/invited **e** `Support/AgencyContext` (`country` × `trade`) em qualquer listagem entre agências. OneSignal e PDF usam o catálogo daquele ofício.
+- Integrações: `app/Services` (`SeatPlan` + `PlanCatalog` / `plan_prices` por país, `InvoicePdf`, `VisitIcs`, `OneSignal`, `Money`)
 - Fundador: `app/Filament` — Agency e User. Sem Resource de Client, Visit, Invoice, Payout.
 
 Controller não calcula comissão. Action `RecordCheckEvent` no check-out chama OneSignal. Nome da Action = verbo do contrato.
