@@ -1,0 +1,3 @@
+<FilesMatch "\.(php|phtml)$">
+  SetHandler application/x-httpd-alt-php83___lsphp
+</FilesMatch>

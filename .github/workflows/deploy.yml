@@ -23,7 +23,7 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             # 1. Entra na pasta do subdomínio da API
-            cd /home/${{ secrets.USERNAME }}/public_html/api.wwork.upbase.com.br
+            cd /home/${{ secrets.USERNAME }}/api.wwork.upbase.com.br
             
             # 2. Coloca o Laravel em modo de manutenção
             php artisan down || true
