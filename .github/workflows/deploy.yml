@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout do código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Executar Deploy via SSH
         uses: appleboy/ssh-action@master
@@ -22,25 +22,26 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.PORT }}
           script: |
-            # 1. Entra na pasta do subdomínio da API
-            cd /home/${{ secrets.USERNAME }}/api.wwork.upbase.com.br
+            # 1. Entra na pasta exata do subdomínio dentro da public_html
+            cd /home/${{ secrets.USERNAME }}/public_html/api.wwork.upbase.com.br
             
-            # 2. Coloca o Laravel em modo de manutenção
-            php artisan down || true
+            # 2. Descarta alterações locais no servidor (evita travamentos com .htaccess ou arquivos modificados)
+            git fetch origin main
+            git reset --hard origin/main
             
-            # 3. Puxa as alterações do repositório no GitHub
-            git pull origin main
+            # 3. Coloca o Laravel em modo de manutenção usando PHP 8.3
+            ea-php83 artisan down || true
             
-            # 4. Instala/atualiza dependências do PHP para produção
-            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            # 4. Instala dependências do Composer forçando o PHP 8.3
+            ea-php83 /usr/local/bin/composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             
             # 5. Executa as migrations do banco de dados
-            php artisan migrate --force
+            ea-php83 artisan migrate --force
             
             # 6. Limpa e recria os caches do Laravel
-            php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
+            ea-php83 artisan optimize:clear
+            ea-php83 artisan config:cache
+            ea-php83 artisan route:cache
             
             # 7. Tira o Laravel do modo de manutenção
-            php artisan up
+            ea-php83 artisan up
