@@ -32,23 +32,26 @@ jobs:
             # 3. Coloca o Laravel em modo de manutenção usando PHP 8.3
             ea-php83 artisan down || true
             
-            # 4. Garante que o composer.phar existe no projeto
+            # 4. Limpa instalação anterior incompleta do Composer
+            rm -rf vendor composer-setup.php
+            
+            # 5. Garante que o composer.phar existe no projeto
             if [ ! -f composer.phar ]; then
               curl -sS https://getcomposer.org/installer -o composer-setup.php
               ea-php83 -d allow_url_fopen=On composer-setup.php
               rm -f composer-setup.php
             fi
             
-            # 5. Instala dependências do Composer forçando o PHP 8.3
+            # 6. Instala dependências do Composer forçando o PHP 8.3
             ea-php83 -d allow_url_fopen=On composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev --ignore-platform-req=ext-fileinfo
             
-            # 6. Executa as migrations do banco de dados
+            # 7. Executa as migrations do banco de dados
             ea-php83 artisan migrate --force
             
-            # 7. Limpa e recria os caches do Laravel
+            # 8. Limpa e recria os caches do Laravel
             ea-php83 artisan optimize:clear
             ea-php83 artisan config:cache
             ea-php83 artisan route:cache
             
-            # 8. Tira o Laravel do modo de manutenção
+            # 9. Tira o Laravel do modo de manutenção
             ea-php83 artisan up
