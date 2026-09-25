@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\ClientController;
+use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\TeamController;
@@ -13,6 +16,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [PasswordController::class, 'forgot']);
 Route::post('/reset-password', [PasswordController::class, 'reset']);
 Route::post('/invites/{token}/accept', [TeamController::class, 'accept']);
+Route::get('/invoices/share/{token}', [InvoiceController::class, 'sharedPdf']);
+Route::get('/agenda/{token}', [AgendaController::class, 'show']);
+Route::post('/agenda/{token}/notify', [AgendaController::class, 'notify']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -33,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/clients/{client}', [ClientController::class, 'show']);
         Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
 
+        Route::get('/visits.ics', [VisitController::class, 'ics']);
         Route::get('/visits', [VisitController::class, 'index']);
         Route::post('/visits', [VisitController::class, 'store']);
         Route::get('/visits/{visit}', [VisitController::class, 'show']);
@@ -43,5 +50,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/visits/{visit}/events', [VisitController::class, 'event']);
         Route::post('/visits/{visit}/photos', [VisitController::class, 'photo']);
         Route::patch('/visits/{visit}/goals', [VisitController::class, 'goals']);
+
+        Route::get('/invoice-candidates', [InvoiceController::class, 'candidates']);
+        Route::get('/invoices', [InvoiceController::class, 'index']);
+        Route::post('/invoices', [InvoiceController::class, 'store']);
+        Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
+        Route::post('/invoices/{invoice}/share', [InvoiceController::class, 'share']);
+        Route::post('/invoices/{invoice}/paid', [InvoiceController::class, 'paid']);
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+
+        Route::get('/billing', [BillingController::class, 'show']);
+        Route::post('/payouts/{payout}/paid', [BillingController::class, 'pay']);
+
+        Route::post('/clients/{client}/agenda-link', [AgendaController::class, 'link']);
     });
 });

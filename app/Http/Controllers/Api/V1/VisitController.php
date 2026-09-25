@@ -17,8 +17,10 @@ use App\Http\Requests\Api\V1\StoreEventRequest;
 use App\Http\Requests\Api\V1\StorePhotoRequest;
 use App\Http\Requests\Api\V1\StoreVisitRequest;
 use App\Http\Requests\Api\V1\UpdateVisitRequest;
+use App\Http\Requests\Api\V1\VisitIcsRequest;
 use App\Http\Resources\Api\V1\VisitResource;
 use App\Models\Visit;
+use App\Services\VisitIcs;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +34,16 @@ class VisitController extends Controller
             $request->validated('day'),
             $request->validated('assignee'),
         ));
+    }
+
+    public function ics(VisitIcsRequest $request, VisitIcs $ics): Response
+    {
+        return response($ics->render(
+            $request->validated('from'),
+            $request->validated('to'),
+        ), 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+        ]);
     }
 
     public function store(StoreVisitRequest $request, CreateVisit $create): JsonResponse

@@ -89,4 +89,24 @@ final class ErrorCodes
     public const VISIT_PHOTO_LIMIT = 'visit.photo_limit';
 
     public const VISIT_GOAL_NOT_FOUND = 'visit.goal_not_found';
+
+    public const NOT_FOUND = 'not_found';
+
+    public const INVOICE_FORBIDDEN = 'invoice.forbidden';
+
+    public const INVOICE_EMPTY = 'invoice.empty';
+
+    public const INVOICE_CLIENT_MISMATCH = 'invoice.client_mismatch';
+
+    public const INVOICE_VISIT_NOT_DONE = 'invoice.visit_not_done';
+
+    public const INVOICE_VISIT_ALREADY_INVOICED = 'invoice.visit_already_invoiced';
+
+    public const INVOICE_PDF_MISSING = 'invoice.pdf_missing';
+
+    public const INVOICE_SHARE_EXPIRED = 'invoice.share_expired';
+
+    public const AGENDA_INVALID_TOKEN = 'agenda.invalid_token';
+
+    public const AGENDA_MISSING_PLAYER = 'agenda.missing_player';
 }
