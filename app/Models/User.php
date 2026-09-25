@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use App\Enums\Locale;
+use App\Enums\StaffPermissionCode;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,7 +30,7 @@ use Illuminate\Notifications\Notifiable;
     'staff_profile_id',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -58,5 +61,20 @@ class User extends Authenticatable
     public function membership(): HasOne
     {
         return $this->hasOne(Membership::class);
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $panel->getId() === 'admin'
+            && $this->hasStaffPermission(StaffPermissionCode::ViewAdminPanel);
+    }
+
+    public function hasStaffPermission(StaffPermissionCode $permission): bool
+    {
+        $this->loadMissing('staffProfile.permissions');
+
+        return $this->staffProfile?->permissions->contains(
+            fn (StaffPermission $row): bool => $row->code === $permission,
+        ) ?? false;
     }
 }

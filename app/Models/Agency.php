@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MembershipRole;
 use App\Enums\Trade;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -48,6 +49,11 @@ class Agency extends Model
         return $this->hasMany(Membership::class);
     }
 
+    public function ownerMembership(): HasOne
+    {
+        return $this->hasOne(Membership::class)->where('role', MembershipRole::Owner->value);
+    }
+
     public function clients(): HasMany
     {
         return $this->hasMany(Client::class);
@@ -56,6 +62,11 @@ class Agency extends Model
     public function visits(): HasMany
     {
         return $this->hasMany(Visit::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     public function subscription(): HasOne
