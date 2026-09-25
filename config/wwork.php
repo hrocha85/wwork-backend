@@ -16,4 +16,8 @@ return [
 
     'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),
 
+    'onesignal_app_id' => env('ONESIGNAL_APP_ID'),
+
+    'onesignal_rest_key' => env('ONESIGNAL_REST_API_KEY'),
+
 ];

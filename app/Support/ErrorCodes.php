@@ -59,4 +59,34 @@ final class ErrorCodes
     public const CLIENT_HAS_INVOICES = 'client.has_invoices';
 
     public const CLIENT_NOT_FOUND = 'client.not_found';
+
+    public const VISIT_FORBIDDEN = 'visit.forbidden';
+
+    public const VISIT_NOT_ASSIGNEE = 'visit.not_assignee';
+
+    public const VISIT_NOT_FOUND = 'visit.not_found';
+
+    public const VISIT_MISSING_ASSIGNEE = 'visit.missing_assignee';
+
+    public const VISIT_MISSING_POINT = 'visit.missing_point';
+
+    public const VISIT_GOALS_REQUIRED = 'visit.goals_required';
+
+    public const VISIT_INVALID_ASSIGNEE = 'visit.invalid_assignee';
+
+    public const VISIT_ALREADY_DONE = 'visit.already_done';
+
+    public const VISIT_INVOICED = 'visit.invoiced';
+
+    public const VISIT_NOT_OFFERED = 'visit.not_offered';
+
+    public const VISIT_NOT_ACCEPTED = 'visit.not_accepted';
+
+    public const VISIT_INVALID_EVENT = 'visit.invalid_event';
+
+    public const VISIT_MISSING_GPS = 'visit.missing_gps';
+
+    public const VISIT_PHOTO_LIMIT = 'visit.photo_limit';
+
+    public const VISIT_GOAL_NOT_FOUND = 'visit.goal_not_found';
 }

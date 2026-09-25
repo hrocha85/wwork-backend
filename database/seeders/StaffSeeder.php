@@ -90,7 +90,7 @@ class StaffSeeder extends Seeder
 
         $this->command?->info('Staff: founder@wwork.app, support@wwork.app, finance@wwork.app');
         $this->command?->line('ADMIN_SEED_PASSWORD='.$password);
-        $this->command?->warn('Troca no primeiro acesso ao /admin.');
+        $this->command?->warn('Troca no primeiro acesso, na Home.');
     }
 
     private function password(): string

@@ -35,7 +35,8 @@ class AdminPanelTest extends TestCase
 
     public function test_founder_logs_in_and_owner_does_not(): void
     {
-        $this->get('/admin/login')->assertOk();
+        $this->get('/')->assertOk();
+        $this->get('/admin/login')->assertNotFound();
 
         Livewire::test(Login::class)
             ->fillForm([
@@ -67,7 +68,7 @@ class AdminPanelTest extends TestCase
 
         $this->actingAs($founder, 'web');
 
-        $this->get('/admin')->assertRedirect('/admin/login');
+        $this->get('/dashboard')->assertRedirect('/');
         $this->assertFalse(Auth::guard('staff')->check());
     }
 
@@ -77,7 +78,7 @@ class AdminPanelTest extends TestCase
 
         $this->actingAs($founder, 'staff');
 
-        $this->get('/admin')->assertRedirect(ChangePassword::getUrl());
+        $this->get('/dashboard')->assertRedirect(ChangePassword::getUrl());
 
         Livewire::test(ChangePassword::class)
             ->fillForm([
@@ -94,7 +95,7 @@ class AdminPanelTest extends TestCase
         session()->forget('password_hash_web');
         $this->actingAs($founder, 'staff');
 
-        $this->get('/admin')
+        $this->get('/dashboard')
             ->assertOk()
             ->assertSee('Cadastros')
             ->assertSee('Atividade')
@@ -123,9 +124,10 @@ class AdminPanelTest extends TestCase
 
         $uris = collect(Route::getRoutes())->map->uri()->all();
         $this->assertNotContains('admin/visits', $uris);
-        $this->assertNotContains('admin/clients', $uris);
-        $this->assertNotContains('admin/invoices', $uris);
-        $this->assertNotContains('admin/payouts', $uris);
+        $this->assertNotContains('visits', $uris);
+        $this->assertNotContains('clients', $uris);
+        $this->assertNotContains('invoices', $uris);
+        $this->assertNotContains('payouts', $uris);
 
         $this->get(AgencyResource::getUrl('index'))
             ->assertOk()
@@ -139,7 +141,7 @@ class AdminPanelTest extends TestCase
             ->assertSee('Visitas')
             ->assertDontSee('SECRET-HOUSE-10-DOWNING');
 
-        $this->get('/admin/people')
+        $this->get('/people')
             ->assertOk()
             ->assertSee('owner@wwork.test')
             ->assertSee('invited@wwork.test')

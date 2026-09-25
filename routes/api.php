@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\TeamController;
+use App\Http\Controllers\Api\V1\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -31,5 +32,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/clients', [ClientController::class, 'store']);
         Route::get('/clients/{client}', [ClientController::class, 'show']);
         Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
+
+        Route::get('/visits', [VisitController::class, 'index']);
+        Route::post('/visits', [VisitController::class, 'store']);
+        Route::get('/visits/{visit}', [VisitController::class, 'show']);
+        Route::patch('/visits/{visit}', [VisitController::class, 'update']);
+        Route::delete('/visits/{visit}', [VisitController::class, 'destroy']);
+        Route::post('/visits/{visit}/accept', [VisitController::class, 'accept']);
+        Route::post('/visits/{visit}/decline', [VisitController::class, 'decline']);
+        Route::post('/visits/{visit}/events', [VisitController::class, 'event']);
+        Route::post('/visits/{visit}/photos', [VisitController::class, 'photo']);
+        Route::patch('/visits/{visit}/goals', [VisitController::class, 'goals']);
     });
 });

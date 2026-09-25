@@ -43,7 +43,7 @@ return [
             'provider' => 'users',
         ],
 
-        // Painel /admin. A sessão do PWA (guard web) não autentica este guard.
+        // Painel na Home. A sessão do PWA (guard web) não autentica este guard.
         'staff' => [
             'driver' => 'session',
             'provider' => 'users',
