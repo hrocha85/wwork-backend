@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Support;
+
+final class ErrorCodes
+{
+    public const UNAUTHENTICATED = 'unauthenticated';
+
+    public const AUTH_FAILED = 'auth.failed';
+
+    public const AUTH_MUST_CHANGE_PASSWORD = 'auth.must_change_password';
+
+    public const AUTH_CURRENT_PASSWORD = 'auth.current_password';
+
+    public const AUTH_RESET_EXPIRED = 'auth.reset_expired';
+
+    public const AUTH_RESET_INVALID = 'auth.reset_invalid';
+
+    public const AUTH_PASSWORD_MISMATCH = 'auth.password_mismatch';
+
+    public const REGISTER_EMAIL_TAKEN = 'register.email_taken';
+
+    public const REGISTER_INVALID_TRADE = 'register.invalid_trade';
+
+    public const REGISTER_TERMS_REQUIRED = 'register.terms_required';
+
+    public const REGISTER_PAYMENT_UNAVAILABLE = 'register.payment_unavailable';
+
+    public const ME_INVALID_LOCALE = 'me.invalid_locale';
+
+    public const TEAM_INVITE_FORBIDDEN = 'team.invite_forbidden';
+
+    public const TEAM_EMAIL_ALREADY_INVITED = 'team.email_already_invited';
+
+    public const TEAM_EMAIL_ALREADY_MEMBER = 'team.email_already_member';
+
+    public const TEAM_SEAT_LIMIT = 'team.seat_limit';
+
+    public const TEAM_NOT_OWNER = 'team.not_owner';
+
+    public const TEAM_CANNOT_RATE_OWNER = 'team.cannot_rate_owner';
+
+    public const TEAM_CANNOT_REMOVE_OWNER = 'team.cannot_remove_owner';
+
+    public const TEAM_MEMBER_NOT_FOUND = 'team.member_not_found';
+
+    public const INVITE_ALREADY_ACCEPTED = 'invite.already_accepted';
+
+    public const INVITE_EXPIRED = 'invite.expired';
+
+    public const INVITE_NOT_FOUND = 'invite.not_found';
+}

@@ -7,6 +7,7 @@ use App\Enums\StaffPermissionCode;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -76,5 +77,12 @@ class User extends Authenticatable implements FilamentUser
         return $this->staffProfile?->permissions->contains(
             fn (StaffPermission $row): bool => $row->code === $permission,
         ) ?? false;
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(
+            (new ResetPassword($token))->locale($this->locale->value),
+        );
     }
 }

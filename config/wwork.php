@@ -14,4 +14,6 @@ return [
 
     'seed_demo' => (bool) env('SEED_DEMO', false),
 
+    'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),
+
 ];
