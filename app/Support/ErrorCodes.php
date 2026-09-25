@@ -49,4 +49,14 @@ final class ErrorCodes
     public const INVITE_EXPIRED = 'invite.expired';
 
     public const INVITE_NOT_FOUND = 'invite.not_found';
+
+    public const CLIENT_MISSING_POINT = 'client.missing_point';
+
+    public const CLIENT_FORBIDDEN = 'client.forbidden';
+
+    public const CLIENT_HAS_ACTIVE_VISITS = 'client.has_active_visits';
+
+    public const CLIENT_HAS_INVOICES = 'client.has_invoices';
+
+    public const CLIENT_NOT_FOUND = 'client.not_found';
 }

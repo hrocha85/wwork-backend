@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\TeamController;
@@ -25,5 +26,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/invites/{invite}/resend', [TeamController::class, 'resend']);
         Route::patch('/team/{userId}/rate', [TeamController::class, 'updateRate']);
         Route::delete('/team/{userId}', [TeamController::class, 'destroy']);
+
+        Route::get('/clients', [ClientController::class, 'index']);
+        Route::post('/clients', [ClientController::class, 'store']);
+        Route::get('/clients/{client}', [ClientController::class, 'show']);
+        Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     });
 });
