@@ -16,4 +16,4 @@ Lê isto no começo de **toda** tarefa. A planta das pastas e o produto estão n
 
 Controller não calcula comissão. Action `RecordCheckEvent` no check-out chama OneSignal. Nome da Action = verbo do contrato.
 
-Fatia 1: login do dono, Filament vazio, `sync_uuid` nas tabelas. Sem mapa.
+Execução: [planos/11-execucao.md](https://github.com/hrocha85/wwork-front/blob/main/planos/11-execucao.md) (ou `../planos/11-execucao.md`). Uma fazer. Back antes do front. Sem mapa até a fazer 9.
