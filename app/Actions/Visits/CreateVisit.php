@@ -2,6 +2,7 @@
 
 namespace App\Actions\Visits;
 
+use App\Actions\Agenda\AssertOwnerAvailable;
 use App\Enums\MembershipRole;
 use App\Enums\VisitStatus;
 use App\Models\Client;
@@ -62,6 +63,16 @@ class CreateVisit
 
         if ($invited > 1 && $goals === []) {
             throw new ApiException(ErrorCodes::VISIT_GOALS_REQUIRED, 422);
+        }
+
+        if ($assignee->role === MembershipRole::Owner) {
+            app(AssertOwnerAvailable::class)(
+                $membership->agency_id,
+                $membership->agency->timezone,
+                (string) $input['date'],
+                (string) $input['time'],
+                $assignee->user_id,
+            );
         }
 
         $offered = $assignee->role === MembershipRole::Invited;

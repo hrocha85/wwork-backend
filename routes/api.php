@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AgencyController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\InvoiceController;
+use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
@@ -18,7 +20,7 @@ Route::post('/forgot-password', [PasswordController::class, 'forgot']);
 Route::post('/reset-password', [PasswordController::class, 'reset']);
 Route::post('/invites/{token}/accept', [TeamController::class, 'accept']);
 Route::get('/invoices/share/{token}', [InvoiceController::class, 'sharedPdf']);
-Route::get('/agenda/{token}', [AgendaController::class, 'show']);
+Route::get('/agenda/{token}', [AgendaController::class, 'show'])->where('token', '(?!blocks$)[A-Za-z0-9]+');
 Route::post('/agenda/{token}/notify', [AgendaController::class, 'notify']);
 Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook']);
 Route::post('/setup-intent', [SubscriptionController::class, 'setup']);
@@ -30,6 +32,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware(['app.password', 'subscription.write'])->group(function () {
         Route::patch('/me', [MeController::class, 'update']);
+        Route::patch('/agency', [AgencyController::class, 'update']);
+        Route::post('/agency/logo', [AgencyController::class, 'logo']);
+        Route::get('/agency/logo', [AgencyController::class, 'showLogo']);
+        Route::post('/me/location', [LocationController::class, 'update']);
+        Route::get('/team/locations', [LocationController::class, 'index']);
 
         Route::post('/partners', [TeamController::class, 'store']);
         Route::get('/team', [TeamController::class, 'index']);
@@ -66,6 +73,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payouts/{payout}/paid', [BillingController::class, 'pay']);
 
         Route::post('/clients/{client}/agenda-link', [AgendaController::class, 'link']);
+        Route::get('/agenda/blocks', [AgendaController::class, 'blocks']);
+        Route::post('/agenda/blocks', [AgendaController::class, 'storeBlock']);
+        Route::delete('/agenda/blocks/{block}', [AgendaController::class, 'destroyBlock']);
 
         Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
         Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);

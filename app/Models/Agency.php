@@ -20,6 +20,10 @@ class Agency extends Model
         'utm_source',
         'utm_campaign',
         'legal_address',
+        'phone',
+        'payment_method',
+        'payment_details',
+        'logo_path',
         'vat_registered',
         'tax_id',
     ];

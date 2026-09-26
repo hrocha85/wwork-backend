@@ -4,7 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ListVisitsRequest extends FormRequest
+class UpdateLocationRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,8 +17,8 @@ class ListVisitsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'day' => ['nullable', 'in:today,tomorrow,week,history'],
-            'assignee' => ['nullable', 'integer'],
+            'lat' => ['nullable'],
+            'lng' => ['nullable'],
         ];
     }
 }

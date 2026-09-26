@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Enums\MembershipRole;
 use App\Models\Agency;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -18,7 +19,7 @@ class AuthSessionResource
 
         return [
             'user' => self::user($user, $agency->timezone, true),
-            'agency' => self::agency($agency),
+            'agency' => self::agency($agency, $user->membership->role === MembershipRole::Owner),
         ];
     }
 
@@ -33,7 +34,7 @@ class AuthSessionResource
 
         return [
             'user' => self::profile($user)['user'],
-            'agency' => self::agency($agency),
+            'agency' => self::agency($agency, true),
             'subscription' => [
                 'plan' => $subscription?->plan?->value,
                 'status' => $subscription?->status?->value,
@@ -51,7 +52,7 @@ class AuthSessionResource
         $user->loadMissing('membership.agency.subscription');
         $agency = $user->membership->agency;
         $subscription = $agency->subscription;
-        $agencyPayload = self::agency($agency);
+        $agencyPayload = self::agency($agency, $user->membership->role === MembershipRole::Owner);
         $agencyPayload['subscription'] = [
             'plan' => $subscription?->plan?->value,
             'status' => $subscription?->status?->value,
@@ -113,9 +114,9 @@ class AuthSessionResource
     /**
      * @return array<string, mixed>
      */
-    private static function agency(Agency $agency): array
+    private static function agency(Agency $agency, bool $withInvoice = false): array
     {
-        return [
+        $payload = [
             'id' => $agency->id,
             'name' => $agency->name,
             'timezone' => $agency->timezone,
@@ -124,6 +125,18 @@ class AuthSessionResource
             'invoice_region' => $agency->invoice_region,
             'trade' => $agency->trade->value,
         ];
+
+        if ($withInvoice) {
+            $payload['legal_address'] = $agency->legal_address;
+            $payload['phone'] = $agency->phone;
+            $payload['payment_method'] = $agency->payment_method;
+            $payload['payment_details'] = $agency->payment_details;
+            $payload['vat_registered'] = $agency->vat_registered;
+            $payload['tax_id'] = $agency->tax_id;
+            $payload['has_logo'] = filled($agency->logo_path);
+        }
+
+        return $payload;
     }
 
     private static function iso(mixed $moment, string $timezone): ?string

@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\PaymentMethod;
 use App\Models\Invoice;
 use Dompdf\Dompdf;
+use Dompdf\Options;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 class InvoicePdf
@@ -20,24 +23,36 @@ class InvoicePdf
 
     public function render(Invoice $invoice): string
     {
-        $invoice->loadMissing(['agency', 'client', 'lines']);
+        $invoice->loadMissing(['agency.ownerMembership.user', 'client', 'lines']);
         $agency = $invoice->agency;
         $locale = $invoice->locale->value;
+        $labels = $this->labels($locale);
+        $total = $agency->currency.' '.number_format($invoice->total_pence / 100, 2, '.', '');
         $html = view('invoices.pdf', [
-            'labels' => $this->labels($locale),
+            'labels' => $labels,
+            'title' => mb_strtoupper($labels['invoice']),
             'agencyName' => $agency->name,
             'region' => $this->regionLabel($agency->invoice_region),
             'legalAddress' => $agency->legal_address,
+            'phone' => $agency->phone,
+            'email' => $agency->ownerMembership?->user?->email,
             'vat' => $agency->vat_registered ? (string) $agency->tax_id : null,
+            'paymentLabel' => $this->paymentLabel($agency->payment_method, $labels),
+            'paymentDetails' => $agency->payment_details,
+            'logo' => $this->logoData($agency->logo_path),
+            'initial' => mb_strtoupper(mb_substr($agency->name, 0, 1)),
             'number' => sprintf('INV-%04d', $invoice->number),
+            'issued' => Carbon::parse($invoice->created_at)->timezone($agency->timezone)->format('d/m/Y'),
             'clientName' => $invoice->client->name,
             'clientAddress' => $invoice->client->address,
-            'currency' => $agency->currency,
             'lines' => $invoice->lines,
-            'total' => number_format($invoice->total_pence / 100, 2, '.', ''),
+            'total' => $total,
+            'money' => fn (int $pence): string => $agency->currency.' '.number_format($pence / 100, 2, '.', ''),
         ])->render();
 
-        $pdf = new Dompdf;
+        $options = new Options;
+        $options->set('isRemoteEnabled', false);
+        $pdf = new Dompdf($options);
         $pdf->loadHtml($html);
         $pdf->setPaper('A4');
         $pdf->render();
@@ -58,14 +73,55 @@ class InvoicePdf
      */
     private function labels(string $locale): array
     {
+        $shared = [
+            'bill_to' => 'BILL TO',
+            'from' => 'FROM',
+            'number' => 'INVOICE NUMBER',
+            'date' => 'DATE',
+            'due' => 'DUE',
+            'amount_due' => 'AMOUNT DUE',
+            'on_receipt' => 'On receipt',
+            'item' => 'ITEM',
+            'notes' => 'HOW TO PAY',
+            'subtotal' => 'SUBTOTAL',
+            'bank_transfer' => 'Bank transfer',
+            'cash' => 'Cash',
+            'other' => 'Other',
+        ];
         $catalogs = [
-            'en' => ['invoice' => 'Invoice', 'description' => 'Description', 'amount' => 'Amount', 'total' => 'Total', 'vat' => 'VAT'],
-            'pt' => ['invoice' => 'Fatura', 'description' => 'Descrição', 'amount' => 'Valor', 'total' => 'Total', 'vat' => 'IVA'],
-            'pl' => ['invoice' => 'Faktura', 'description' => 'Opis', 'amount' => 'Kwota', 'total' => 'Suma', 'vat' => 'VAT'],
-            'ro' => ['invoice' => 'Factură', 'description' => 'Descriere', 'amount' => 'Sumă', 'total' => 'Total', 'vat' => 'TVA'],
-            'es' => ['invoice' => 'Factura', 'description' => 'Descripción', 'amount' => 'Importe', 'total' => 'Total', 'vat' => 'IVA'],
+            'en' => ['invoice' => 'Invoice', 'description' => 'Description', 'amount' => 'Amount', 'total' => 'Total', 'vat' => 'VAT'] + $shared,
+            'pt' => ['invoice' => 'Fatura', 'description' => 'Descrição', 'amount' => 'Valor', 'total' => 'Total', 'vat' => 'IVA'] + $shared,
+            'pl' => ['invoice' => 'Faktura', 'description' => 'Opis', 'amount' => 'Kwota', 'total' => 'Suma', 'vat' => 'VAT'] + $shared,
+            'ro' => ['invoice' => 'Factură', 'description' => 'Descriere', 'amount' => 'Sumă', 'total' => 'Total', 'vat' => 'TVA'] + $shared,
+            'es' => ['invoice' => 'Factura', 'description' => 'Descripción', 'amount' => 'Importe', 'total' => 'Total', 'vat' => 'IVA'] + $shared,
         ];
 
         return $catalogs[$locale] ?? $catalogs['en'];
+    }
+
+    /**
+     * @param  array<string, string>  $labels
+     */
+    private function paymentLabel(?string $method, array $labels): ?string
+    {
+        $payment = PaymentMethod::tryFrom((string) $method);
+
+        if ($payment === null) {
+            return null;
+        }
+
+        return $labels[$payment->value] ?? null;
+    }
+
+    private function logoData(?string $path): ?string
+    {
+        if (! filled($path) || ! Storage::disk('local')->exists($path)) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $mime = $extension === 'png' ? 'image/png' : 'image/jpeg';
+
+        return 'data:'.$mime.';base64,'.base64_encode(Storage::disk('local')->get($path));
     }
 }

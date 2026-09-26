@@ -28,6 +28,8 @@ final class ErrorCodes
 
     public const ME_INVALID_LOCALE = 'me.invalid_locale';
 
+    public const LOCATION_MISSING = 'location.missing';
+
     public const TEAM_INVITE_FORBIDDEN = 'team.invite_forbidden';
 
     public const TEAM_EMAIL_ALREADY_INVITED = 'team.email_already_invited';
@@ -110,6 +112,14 @@ final class ErrorCodes
 
     public const AGENDA_MISSING_PLAYER = 'agenda.missing_player';
 
+    public const AGENDA_ENDS_BEFORE_START = 'agenda.ends_before_start';
+
+    public const AGENDA_NOTE_TOO_LONG = 'agenda.note_too_long';
+
+    public const AGENDA_BLOCKED = 'agenda.blocked';
+
+    public const AGENDA_BLOCK_FORBIDDEN = 'agenda.block_forbidden';
+
     public const REGISTER_PAYMENT_FAILED = 'register.payment_failed';
 
     public const SUBSCRIPTION_PAST_DUE = 'subscription.past_due';
@@ -125,4 +135,18 @@ final class ErrorCodes
     public const SUBSCRIPTION_STRIPE_ERROR = 'subscription.stripe_error';
 
     public const SUBSCRIPTION_PAYMENT_FAILED = 'subscription.payment_failed';
+
+    public const AGENCY_NOT_OWNER = 'agency.not_owner';
+
+    public const AGENCY_TAX_ID_REQUIRED = 'agency.tax_id_required';
+
+    public const AGENCY_PAYMENT_METHOD_INVALID = 'agency.payment_method_invalid';
+
+    public const AGENCY_PHONE_INVALID = 'agency.phone_invalid';
+
+    public const AGENCY_ADDRESS_INVALID = 'agency.address_invalid';
+
+    public const AGENCY_PAYMENT_DETAILS_INVALID = 'agency.payment_details_invalid';
+
+    public const AGENCY_LOGO_INVALID = 'agency.logo_invalid';
 }

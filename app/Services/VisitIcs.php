@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\MembershipRole;
+use App\Models\AgendaBlock;
+use App\Models\Membership;
 use App\Models\Visit;
 use App\Support\AgencyContext;
 use Illuminate\Support\Carbon;
@@ -31,6 +33,8 @@ class VisitIcs
             'PRODID:-//WWork//EN',
         ];
 
+        $timezone = $membership->agency->timezone;
+
         foreach ($query->get() as $visit) {
             $start = Carbon::parse($visit->service_date->toDateString().' '.substr((string) $visit->service_time, 0, 8));
             $end = $start->copy()->addHour();
@@ -41,6 +45,31 @@ class VisitIcs
             $lines[] = 'DTEND:'.$end->format('Ymd\THis');
             $lines[] = 'LOCATION:'.$this->escape((string) $visit->client->address);
             $lines[] = 'END:VEVENT';
+        }
+
+        if ($membership->role === MembershipRole::Owner) {
+            $ownerId = Membership::query()
+                ->where('agency_id', $membership->agency_id)
+                ->where('role', MembershipRole::Owner)
+                ->value('user_id');
+            $rangeStart = Carbon::parse($from, $timezone)->startOfDay()->utc();
+            $rangeEnd = Carbon::parse($to, $timezone)->endOfDay()->utc();
+            $blocks = AgendaBlock::query()
+                ->where('agency_id', $membership->agency_id)
+                ->where('user_id', $ownerId)
+                ->where('starts_at', '<', $rangeEnd)
+                ->where('ends_at', '>', $rangeStart)
+                ->orderBy('starts_at')
+                ->get();
+
+            foreach ($blocks as $block) {
+                $lines[] = 'BEGIN:VEVENT';
+                $lines[] = 'UID:'.$block->sync_uuid.'@wwork';
+                $lines[] = 'SUMMARY:WWork unavailable';
+                $lines[] = 'DTSTART:'.$block->starts_at->timezone($timezone)->format('Ymd\THis');
+                $lines[] = 'DTEND:'.$block->ends_at->timezone($timezone)->format('Ymd\THis');
+                $lines[] = 'END:VEVENT';
+            }
         }
 
         $lines[] = 'END:VCALENDAR';

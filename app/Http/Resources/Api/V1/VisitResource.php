@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Enums\MembershipRole;
+use App\Enums\VisitStatus;
 use App\Models\CheckEvent;
 use App\Models\Visit;
 use App\Models\VisitGoal;
@@ -22,6 +23,10 @@ class VisitResource
         $actor = AgencyContext::user();
         $membership = AgencyContext::membership();
         $agency = $membership->agency;
+        if ($day === 'history') {
+            return self::history();
+        }
+
         $timezone = $agency->timezone;
         $now = Carbon::now($timezone);
         $window = self::window($day === null || $day === '' ? 'today' : $day, $now);
@@ -210,6 +215,41 @@ class VisitResource
         }
 
         return $row;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function history(): array
+    {
+        $actor = AgencyContext::user();
+        $membership = AgencyContext::membership();
+        $timezone = $membership->agency->timezone;
+        $base = Visit::query()
+            ->where('agency_id', $membership->agency_id)
+            ->with(['client', 'assignee', 'goals', 'photos', 'events', 'invoiceLine']);
+
+        if ($membership->role === MembershipRole::Invited) {
+            $base->where('assignee_id', $actor->id);
+        }
+
+        $open = (clone $base)
+            ->where('status', VisitStatus::CheckedIn)
+            ->orderByDesc('check_in_at')
+            ->get();
+        $done = (clone $base)
+            ->where('status', VisitStatus::Done)
+            ->orderByDesc('service_date')
+            ->orderByDesc('service_time')
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get();
+
+        return [
+            'visits' => $open->concat($done)->map(
+                fn (Visit $visit): array => self::item($visit, $membership->role, $timezone),
+            )->values()->all(),
+        ];
     }
 
     /**
