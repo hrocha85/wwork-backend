@@ -28,6 +28,33 @@ class AdminPanelTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
     }
 
+    public function test_login_is_light_and_the_sign_in_button_is_orange(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('--default-theme-mode: light', false)
+            ->assertSee('wwork-sign-in', false)
+            ->assertSee('#FB7E00', false)
+            ->assertSee('#D1DFD2', false)
+            ->assertSee('#1F2937', false)
+            ->assertSee('#2C3848', false)
+            ->assertDontSee('MRR');
+    }
+
+    public function test_account_menu_can_switch_theme(): void
+    {
+        $founder = User::query()->where('email', 'founder@wwork.app')->firstOrFail();
+        $founder->forceFill(['must_change_password' => false])->save();
+
+        $this->actingAs($founder, 'staff');
+
+        $this->get('/dashboard')
+            ->assertOk()
+            ->assertSee('fi-theme-switcher', false)
+            ->assertSee('MRR')
+            ->assertSee('Período');
+    }
+
     public function test_health_endpoint_is_public(): void
     {
         $this->get('/up')->assertOk();

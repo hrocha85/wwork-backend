@@ -22,6 +22,7 @@ class Subscription extends Model
         'discount_type',
         'cancel_at',
         'complimentary_until',
+        'paid_offline_until',
         'stripe_id',
         'stripe_price_id',
         'stripe_status',
@@ -41,6 +42,7 @@ class Subscription extends Model
             'discount_type' => AnnualDiscount::class,
             'cancel_at' => 'datetime',
             'complimentary_until' => 'datetime',
+            'paid_offline_until' => 'datetime',
         ];
     }
 

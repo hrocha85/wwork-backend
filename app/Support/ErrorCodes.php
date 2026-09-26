@@ -120,6 +120,8 @@ final class ErrorCodes
 
     public const SUBSCRIPTION_INVALID_PLAN = 'subscription.invalid_plan';
 
+    public const PLAN_SEATS_EXCEEDED = 'plan.seats_exceeded';
+
     public const SUBSCRIPTION_STRIPE_ERROR = 'subscription.stripe_error';
 
     public const SUBSCRIPTION_PAYMENT_FAILED = 'subscription.payment_failed';

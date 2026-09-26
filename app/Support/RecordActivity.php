@@ -6,12 +6,16 @@ use App\Models\Activity;
 
 class RecordActivity
 {
-    public static function add(?int $agencyId, ?int $userId, string $action): void
+    /**
+     * @param  array<string, mixed>|null  $properties
+     */
+    public static function add(?int $agencyId, ?int $userId, string $action, ?array $properties = null): void
     {
         Activity::query()->create([
             'agency_id' => $agencyId,
             'user_id' => $userId,
             'action' => $action,
+            'properties' => $properties,
         ]);
     }
 }

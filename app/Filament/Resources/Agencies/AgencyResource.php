@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Agencies;
 
+use App\Enums\PlanCode;
 use App\Enums\StaffPermissionCode;
+use App\Enums\SubscriptionStatus;
 use App\Enums\Trade;
 use App\Filament\Resources\Agencies\Pages\ListAgencies;
 use App\Filament\Resources\Agencies\Pages\ViewAgency;
@@ -17,6 +19,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class AgencyResource extends Resource
@@ -113,6 +116,52 @@ class AgencyResource extends Resource
                     ->options(collect(Trade::cases())->mapWithKeys(
                         fn (Trade $trade): array => [$trade->value => $trade->value],
                     )->all()),
+                SelectFilter::make('plan')
+                    ->label('Plano')
+                    ->options(collect(PlanCode::cases())->mapWithKeys(
+                        fn (PlanCode $plan): array => [$plan->value => $plan->name],
+                    )->all())
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        $data['value'] ?? null,
+                        fn (Builder $query, string $plan): Builder => $query->whereHas(
+                            'subscription',
+                            fn (Builder $query): Builder => $query->where('plan', $plan),
+                        ),
+                    )),
+                SelectFilter::make('status')
+                    ->label('Estado')
+                    ->options([
+                        SubscriptionStatus::Active->value => 'active',
+                        SubscriptionStatus::PastDue->value => 'past_due',
+                        SubscriptionStatus::Complimentary->value => 'complimentary',
+                        SubscriptionStatus::PaidOffline->value => 'paid_offline',
+                        SubscriptionStatus::Cancelled->value => 'cancelled',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        $data['value'] ?? null,
+                        fn (Builder $query, string $status): Builder => $query->whereHas(
+                            'subscription',
+                            fn (Builder $query): Builder => $query->where('status', $status),
+                        ),
+                    )),
+                SelectFilter::make('campaign')
+                    ->label('Campanha')
+                    ->options(fn (): array => ['Direct' => 'Direct'])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+                        if (blank($value)) {
+                            return $query;
+                        }
+                        if ($value === 'Direct') {
+                            return $query
+                                ->where(fn (Builder $query): Builder => $query->whereNull('utm_campaign')->orWhere('utm_campaign', ''))
+                                ->where(fn (Builder $query): Builder => $query->whereNull('utm_source')->orWhere('utm_source', ''));
+                        }
+
+                        return $query->where(
+                            fn (Builder $query): Builder => $query->where('utm_campaign', $value)->orWhere('utm_source', $value),
+                        );
+                    }),
             ])
             ->recordActions([
                 ViewAction::make(),
