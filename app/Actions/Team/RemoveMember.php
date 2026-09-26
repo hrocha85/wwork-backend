@@ -7,6 +7,7 @@ use App\Models\Membership;
 use App\Models\SyncDeletion;
 use App\Models\User;
 use App\Policies\TeamPolicy;
+use App\Services\SeatPlan;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
@@ -43,6 +44,8 @@ class RemoveMember
         ]);
 
         $membership->delete();
+
+        app(SeatPlan::class)->recount($membership->agency);
 
         RecordActivity::add($agencyId, $actor->id, 'team.member_removed');
     }

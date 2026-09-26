@@ -109,4 +109,18 @@ final class ErrorCodes
     public const AGENDA_INVALID_TOKEN = 'agenda.invalid_token';
 
     public const AGENDA_MISSING_PLAYER = 'agenda.missing_player';
+
+    public const REGISTER_PAYMENT_FAILED = 'register.payment_failed';
+
+    public const SUBSCRIPTION_PAST_DUE = 'subscription.past_due';
+
+    public const SUBSCRIPTION_INACTIVE = 'subscription.inactive';
+
+    public const SUBSCRIPTION_FORBIDDEN = 'subscription.forbidden';
+
+    public const SUBSCRIPTION_INVALID_PLAN = 'subscription.invalid_plan';
+
+    public const SUBSCRIPTION_STRIPE_ERROR = 'subscription.stripe_error';
+
+    public const SUBSCRIPTION_PAYMENT_FAILED = 'subscription.payment_failed';
 }

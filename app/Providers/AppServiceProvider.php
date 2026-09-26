@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Stripe\LiveStripeBilling;
+use App\Services\Stripe\StripeBilling;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\ServiceProvider;
 
@@ -12,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(StripeBilling::class, LiveStripeBilling::class);
     }
 
     /**

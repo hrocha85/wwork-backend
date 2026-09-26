@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasswordController;
+use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\TeamController;
 use App\Http\Controllers\Api\V1\VisitController;
 use Illuminate\Support\Facades\Route;
@@ -19,13 +20,15 @@ Route::post('/invites/{token}/accept', [TeamController::class, 'accept']);
 Route::get('/invoices/share/{token}', [InvoiceController::class, 'sharedPdf']);
 Route::get('/agenda/{token}', [AgendaController::class, 'show']);
 Route::post('/agenda/{token}/notify', [AgendaController::class, 'notify']);
+Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook']);
+Route::post('/setup-intent', [SubscriptionController::class, 'setup']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [MeController::class, 'show']);
     Route::post('/password/change', [PasswordController::class, 'change']);
 
-    Route::middleware('app.password')->group(function () {
+    Route::middleware(['app.password', 'subscription.write'])->group(function () {
         Route::patch('/me', [MeController::class, 'update']);
 
         Route::post('/partners', [TeamController::class, 'store']);
@@ -63,5 +66,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payouts/{payout}/paid', [BillingController::class, 'pay']);
 
         Route::post('/clients/{client}/agenda-link', [AgendaController::class, 'link']);
+
+        Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
+        Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);
+        Route::post('/subscription/annual', [SubscriptionController::class, 'annual']);
+        Route::post('/subscription/upgrade', [SubscriptionController::class, 'upgrade']);
+        Route::post('/subscription/payment-method', [SubscriptionController::class, 'paymentMethod']);
+        Route::get('/subscription/invoices', [SubscriptionController::class, 'invoices']);
     });
 });

@@ -14,9 +14,11 @@ use Illuminate\Http\Response;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request, RegisterOwner $register): never
+    public function register(RegisterRequest $request, RegisterOwner $register): JsonResponse
     {
-        $register($request->validated());
+        $user = $register($request->validated());
+
+        return response()->json(AuthSessionResource::registered($user), 201);
     }
 
     public function login(LoginRequest $request, LoginUser $login): JsonResponse

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAppPasswordChanged;
+use App\Http\Middleware\EnsureSubscriptionWritable;
 use App\Support\ApiException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'app.password' => EnsureAppPasswordChanged::class,
+            'subscription.write' => EnsureSubscriptionWritable::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -25,6 +25,27 @@ class AuthSessionResource
     /**
      * @return array<string, mixed>
      */
+    public static function registered(User $user): array
+    {
+        $user->loadMissing('membership.agency.subscription');
+        $agency = $user->membership->agency;
+        $subscription = $agency->subscription;
+
+        return [
+            'user' => self::profile($user)['user'],
+            'agency' => self::agency($agency),
+            'subscription' => [
+                'plan' => $subscription?->plan?->value,
+                'status' => $subscription?->status?->value,
+                'seats' => $subscription?->seats,
+                'amount' => $subscription?->amount_minor,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public static function me(User $user): array
     {
         $user->loadMissing('membership.agency.subscription');

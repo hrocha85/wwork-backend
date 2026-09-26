@@ -2,10 +2,12 @@
 
 namespace App\Actions\Team;
 
+use App\Enums\PlanCode;
 use App\Mail\PartnerInvited;
 use App\Models\Invite;
 use App\Models\User;
 use App\Policies\TeamPolicy;
+use App\Services\SeatPlan;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
@@ -23,6 +25,8 @@ class InvitePartner
         if (! app(TeamPolicy::class)->invite($actor)) {
             throw new ApiException(ErrorCodes::TEAM_INVITE_FORBIDDEN, 403);
         }
+
+        app(SeatPlan::class)->prepareInvite($membership->agency);
 
         $email = mb_strtolower(trim($email));
         $agency = $membership->agency;
@@ -44,9 +48,10 @@ class InvitePartner
             throw new ApiException(ErrorCodes::TEAM_EMAIL_ALREADY_INVITED, 422);
         }
 
-        $limit = $agency->subscription?->plan?->maxSeats() ?? 0;
+        $subscription = $agency->subscription()->first();
+        $limit = $subscription?->plan?->maxSeats() ?? 0;
 
-        if ($agency->memberships()->count() >= $limit) {
+        if ($agency->memberships()->count() >= $limit && $subscription?->plan !== PlanCode::Business) {
             throw new ApiException(ErrorCodes::TEAM_SEAT_LIMIT, 403);
         }
 
