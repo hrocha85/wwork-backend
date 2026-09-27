@@ -10,6 +10,7 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class ChangePassword extends Page
 {
@@ -17,12 +18,30 @@ class ChangePassword extends Page
 
     protected static ?string $slug = 'change-password';
 
-    protected static ?string $title = 'Trocar senha';
+    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
     /**
      * @var array<string, mixed>|null
      */
     public ?array $data = [];
+
+    public function getTitle(): string
+    {
+        return __('panel.password.title');
+    }
+
+    public function getSubheading(): ?string
+    {
+        return __('panel.account.password_help');
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getPageClasses(): array
+    {
+        return ['wwork-form-page'];
+    }
 
     public function mount(): void
     {
@@ -34,7 +53,8 @@ class ChangePassword extends Page
         return $schema
             ->components([
                 TextInput::make('password')
-                    ->label('Senha nova')
+                    ->label(__('panel.password.new'))
+                    ->helperText(__('panel.password.new_help'))
                     ->password()
                     ->revealable()
                     ->required()
@@ -42,7 +62,8 @@ class ChangePassword extends Page
                     ->confirmed()
                     ->autocomplete('new-password'),
                 TextInput::make('password_confirmation')
-                    ->label('Confirmar senha')
+                    ->label(__('panel.password.confirm'))
+                    ->helperText(__('panel.password.confirm_help'))
                     ->password()
                     ->revealable()
                     ->required()
@@ -59,8 +80,15 @@ class ChangePassword extends Page
                 ->livewireSubmitHandler('save')
                 ->footer([
                     Actions::make([
+                        Action::make('back')
+                            ->label(__('panel.account.back'))
+                            ->icon(Heroicon::OutlinedArrowLeft)
+                            ->url(Dashboard::getUrl())
+                            ->color('gray'),
                         Action::make('save')
-                            ->label('Salvar')
+                            ->label(__('panel.account.save'))
+                            ->icon(Heroicon::OutlinedCheck)
+                            ->color('primary')
                             ->submit('save'),
                     ]),
                 ]),

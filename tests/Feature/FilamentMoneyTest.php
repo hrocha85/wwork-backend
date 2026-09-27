@@ -75,8 +75,8 @@ class FilamentMoneyTest extends TestCase
         $this->get('/dashboard')
             ->assertOk()
             ->assertSee('MRR')
-            ->assertSee('Cadastros por ofício')
-            ->assertSee('Cortesia')
+            ->assertSee('Signups by trade')
+            ->assertSee('Complimentary')
             ->assertDontSee('SECRET-HOUSE-10-DOWNING');
     }
 

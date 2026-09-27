@@ -4,11 +4,13 @@ namespace App\Filament\Widgets;
 
 use App\Enums\StaffPermissionCode;
 use App\Enums\Trade;
+use App\Filament\Support\PanelLabels;
 use App\Filament\Support\PanelWindow;
 use App\Models\Agency;
 use App\Models\User;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Illuminate\Contracts\Support\Htmlable;
 
 class SignupsByTradeChart extends ChartWidget
 {
@@ -16,9 +18,17 @@ class SignupsByTradeChart extends ChartWidget
 
     protected static ?int $sort = 2;
 
-    protected ?string $heading = 'Cadastros por ofício';
-
     protected static bool $isLazy = false;
+
+    public function getHeading(): string|Htmlable|null
+    {
+        return __('panel.charts.signups');
+    }
+
+    public function getDescription(): string|Htmlable|null
+    {
+        return __('panel.charts.signups_help');
+    }
 
     public static function canView(): bool
     {
@@ -81,7 +91,7 @@ class SignupsByTradeChart extends ChartWidget
         $datasets = [];
         foreach (Trade::cases() as $trade) {
             $datasets[] = [
-                'label' => $trade->value,
+                'label' => PanelLabels::trade($trade),
                 'data' => $counts[$trade->value],
                 'backgroundColor' => $colors[$trade->value],
                 'stack' => 'trades',

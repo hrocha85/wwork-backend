@@ -6,6 +6,7 @@ use App\Enums\AnnualDiscount;
 use App\Enums\BillingInterval;
 use App\Enums\PlanCode;
 use App\Enums\SubscriptionStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -49,5 +50,41 @@ class Subscription extends Model
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
+    }
+
+    /**
+     * @param  Builder<Subscription>  $query
+     * @return Builder<Subscription>
+     */
+    public function scopeAtCeiling(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            foreach (PlanCode::cases() as $plan) {
+                $query->orWhere(function (Builder $query) use ($plan): void {
+                    $query->where('plan', $plan->value)
+                        ->whereHas(
+                            'agency',
+                            fn (Builder $agency): Builder => $agency->has('memberships', '>=', $plan->maxSeats()),
+                        );
+                });
+            }
+        });
+    }
+
+    /**
+     * @param  Builder<Subscription>  $query
+     * @return Builder<Subscription>
+     */
+    public function scopeNeedsAttention(Builder $query): Builder
+    {
+        $soon = now()->addDays(30);
+
+        return $query->where(function (Builder $query) use ($soon): void {
+            $query->where('status', SubscriptionStatus::PastDue)
+                ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('cancel_at')->where('cancel_at', '<=', $soon))
+                ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('complimentary_until')->where('complimentary_until', '<=', $soon))
+                ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('paid_offline_until')->where('paid_offline_until', '<=', $soon))
+                ->orWhere(fn (Builder $query): Builder => $query->atCeiling());
+        });
     }
 }

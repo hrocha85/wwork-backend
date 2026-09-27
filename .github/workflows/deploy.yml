@@ -33,29 +33,47 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            # 3. Coloca o Laravel em modo de manutenção
-            php83 artisan down || true
-            
-            # 4. Limpa instalação anterior incompleta do Composer
-            rm -rf vendor composer-setup.php
-            
+            # 3. O Filament precisa de ext-zip. Sem ela o Composer para e o artisan não sobe.
+            missing=""
+            for ext in curl fileinfo zip intl mbstring; do
+              if ! php83 -m | grep -qi "^${ext}$"; then
+                missing="${missing} ${ext}"
+              fi
+            done
+            if [ -n "${missing}" ]; then
+              echo "php83 está sem estas extensões:${missing}"
+              echo "Ative no seletor PHP 8.3 da conta, o mesmo lugar de intl, mbstring e fileinfo."
+              exit 1
+            fi
+
+            # 4. Manutenção só existe com o autoload. Não apaga vendor antes do install.
+            if [ -f vendor/autoload.php ]; then
+              php83 artisan down || true
+            fi
+
             # 5. Garante que o composer.phar existe no projeto
             if [ ! -f composer.phar ]; then
               curl -sS https://getcomposer.org/installer -o composer-setup.php
               php83 -d allow_url_fopen=On composer-setup.php
               rm -f composer-setup.php
             fi
-            
-            # 6. Instala dependências com o mesmo PHP 8.3 do site
-            php83 -d allow_url_fopen=On composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev
-            
+
+            # 6. Instala no vendor que já existe. Se falhar, o site anterior continua no disco.
+            if ! php83 -d allow_url_fopen=On composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev; then
+              echo "composer install falhou."
+              if [ -f vendor/autoload.php ]; then
+                php83 artisan up || true
+              fi
+              exit 1
+            fi
+
             # 7. Executa as migrations do banco de dados
             php83 artisan migrate --force
-            
+
             # 8. Limpa e recria os caches do Laravel
             php83 artisan optimize:clear
             php83 artisan config:cache
             php83 artisan route:cache
-            
+
             # 9. Tira o Laravel do modo de manutenção
             php83 artisan up

@@ -4,10 +4,11 @@ namespace App\Filament\Resources\Agencies\Pages;
 
 use App\Actions\Auth\InvitePaidOwner;
 use App\Actions\Subscription\AssignPlan;
-use App\Enums\PlanCode;
 use App\Enums\StaffPermissionCode;
 use App\Enums\SubscriptionStatus;
 use App\Filament\Resources\Agencies\AgencyResource;
+use App\Filament\Resources\Subscriptions\SubscriptionResource;
+use App\Filament\Support\PanelLabels;
 use App\Models\Agency;
 use App\Models\User;
 use App\Support\ApiException;
@@ -17,36 +18,69 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 
 class ViewAgency extends ViewRecord
 {
     protected static string $resource = AgencyResource::class;
 
+    public function getSubheading(): string|Htmlable|null
+    {
+        return __('panel.agency.view_help');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('subscription')
+                ->label(__('panel.nav.subscriptions'))
+                ->icon(Heroicon::OutlinedBanknotes)
+                ->visible(function (): bool {
+                    $record = $this->getRecord();
+
+                    return $record instanceof Agency
+                        && $record->subscription !== null
+                        && self::canManagePlans();
+                })
+                ->url(function (): ?string {
+                    $record = $this->getRecord();
+                    if (! $record instanceof Agency || $record->subscription === null) {
+                        return null;
+                    }
+
+                    return SubscriptionResource::getUrl('view', ['record' => $record->subscription]);
+                }),
             Action::make('assignPlan')
-                ->label('Atribuir plano')
+                ->label(__('panel.agency.assign'))
+                ->icon(Heroicon::OutlinedCreditCard)
+                ->modalIcon(Heroicon::OutlinedCreditCard)
+                ->modalWidth(Width::Large)
+                ->modalDescription(__('panel.agency.assign_help'))
                 ->visible(fn (): bool => self::canManagePlans())
                 ->schema([
                     Select::make('plan')
-                        ->label('Plano')
-                        ->options(collect(PlanCode::cases())->mapWithKeys(
-                            fn (PlanCode $plan): array => [$plan->value => $plan->name],
-                        )->all())
+                        ->label(__('panel.agency.plan'))
+                        ->helperText(__('panel.invite.plan_help'))
+                        ->options(fn (): array => PanelLabels::plans())
+                        ->native(false)
                         ->required(),
                     Select::make('reason')
-                        ->label('Motivo')
+                        ->label(__('panel.agency.reason'))
+                        ->helperText(__('panel.agency.reason_help'))
                         ->options([
-                            'pay' => 'Pagou a diferença',
-                            'complimentary' => 'Cortesia',
-                            'correction' => 'Correção',
-                            'paid_offline' => 'Pago fora',
+                            'pay' => __('panel.reason.pay'),
+                            'complimentary' => __('panel.reason.complimentary'),
+                            'correction' => __('panel.reason.correction'),
+                            'paid_offline' => __('panel.reason.paid_offline'),
                         ])
+                        ->native(false)
                         ->required()
                         ->live(),
                     DatePicker::make('until')
-                        ->label('Até quando')
+                        ->label(__('panel.agency.until'))
+                        ->helperText(__('panel.agency.until_help'))
                         ->visible(fn (Get $get): bool => in_array($get('reason'), ['complimentary', 'paid_offline'], true))
                         ->required(fn (Get $get): bool => $get('reason') === 'complimentary'),
                 ])
@@ -63,10 +97,11 @@ class ViewAgency extends ViewRecord
                         $action->halt();
                     }
 
-                    Notification::make()->title('Plano atribuído')->success()->send();
+                    Notification::make()->title(__('panel.agency.assigned'))->success()->send();
                 }),
             Action::make('resendWelcome')
-                ->label('Reenviar boas-vindas')
+                ->label(__('panel.agency.resend'))
+                ->modalDescription(__('panel.agency.resend_help'))
                 ->visible(function (): bool {
                     $record = $this->getRecord();
 
@@ -83,7 +118,7 @@ class ViewAgency extends ViewRecord
 
                     $password = app(InvitePaidOwner::class)->resend($record, auth('staff')->id());
                     Notification::make()
-                        ->title('Nova senha temporária')
+                        ->title(__('panel.agency.temp_password'))
                         ->body($password)
                         ->success()
                         ->send();

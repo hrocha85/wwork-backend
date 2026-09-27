@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\ChangePassword;
 use App\Filament\Resources\Agencies\AgencyResource;
+use App\Filament\Resources\Subscriptions\SubscriptionResource;
 use App\Models\Agency;
 use App\Models\Client;
 use App\Models\User;
@@ -38,6 +39,7 @@ class AdminPanelTest extends TestCase
             ->assertSee('#D1DFD2', false)
             ->assertSee('#1F2937', false)
             ->assertSee('#2C3848', false)
+            ->assertSee('Staff only. Cleaners sign in on the app, not here.', false)
             ->assertDontSee('MRR');
     }
 
@@ -52,7 +54,9 @@ class AdminPanelTest extends TestCase
             ->assertOk()
             ->assertSee('fi-theme-switcher', false)
             ->assertSee('MRR')
-            ->assertSee('Período');
+            ->assertSee('Period')
+            ->assertSee('New agencies')
+            ->assertSee('Agencies created in the period.');
     }
 
     public function test_health_endpoint_is_public(): void
@@ -99,13 +103,18 @@ class AdminPanelTest extends TestCase
         $this->assertFalse(Auth::guard('staff')->check());
     }
 
-    public function test_staff_must_change_password_before_the_dashboard(): void
+    public function test_staff_reaches_the_dashboard_without_a_new_password(): void
     {
         $founder = User::query()->where('email', 'founder@wwork.app')->firstOrFail();
+        $this->assertTrue($founder->must_change_password);
 
         $this->actingAs($founder, 'staff');
 
-        $this->get('/dashboard')->assertRedirect(ChangePassword::getUrl());
+        $this->get('/dashboard')
+            ->assertOk()
+            ->assertSee('New agencies')
+            ->assertSee('Activity')
+            ->assertDontSee('Visits');
 
         Livewire::test(ChangePassword::class)
             ->fillForm([
@@ -117,16 +126,31 @@ class AdminPanelTest extends TestCase
 
         $founder->refresh();
         $this->assertFalse($founder->must_change_password);
+    }
 
-        session()->forget('password_hash_staff');
-        session()->forget('password_hash_web');
+    public function test_panel_copy_follows_portuguese(): void
+    {
+        $founder = User::query()->where('email', 'founder@wwork.app')->firstOrFail();
+        $founder->forceFill(['must_change_password' => false, 'locale' => 'pt'])->save();
+
         $this->actingAs($founder, 'staff');
 
-        $this->get('/dashboard')
+        $this->withHeader('Accept-Language', 'pt-BR')
+            ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Cadastros')
-            ->assertSee('Atividade')
-            ->assertDontSee('Visitas');
+            ->assertSee('Período')
+            ->assertSee('Agências criadas no período.')
+            ->assertSee('Agências')
+            ->assertSee('Trocar senha')
+            ->assertSee('MRR em risco')
+            ->assertSee('Assinaturas que pedem decisão');
+
+        $this->withHeader('Accept-Language', 'pt-BR')
+            ->get('/change-password')
+            ->assertOk()
+            ->assertSee('O painel não pede senha nova')
+            ->assertSee('Voltar ao painel')
+            ->assertSee('No mínimo 8 caracteres');
     }
 
     public function test_agency_list_hides_houses_and_has_no_wallet_resources(): void
@@ -165,7 +189,7 @@ class AdminPanelTest extends TestCase
         $this->get(AgencyResource::getUrl('view', ['record' => $agency]))
             ->assertOk()
             ->assertSee('Demo Cleaning')
-            ->assertSee('Visitas')
+            ->assertSee('Visits')
             ->assertDontSee('SECRET-HOUSE-10-DOWNING');
 
         $this->get('/people')
@@ -173,5 +197,60 @@ class AdminPanelTest extends TestCase
             ->assertSee('owner@wwork.test')
             ->assertSee('invited@wwork.test')
             ->assertDontSee('founder@wwork.app');
+    }
+
+    public function test_subscription_book_is_for_revenue_and_hides_houses(): void
+    {
+        $founder = User::query()->where('email', 'founder@wwork.app')->firstOrFail();
+        $founder->forceFill(['must_change_password' => false])->save();
+        $agency = Agency::query()->firstOrFail();
+
+        Client::query()->create([
+            'agency_id' => $agency->id,
+            'created_by' => User::query()->where('email', 'owner@wwork.test')->firstOrFail()->id,
+            'name' => 'Hidden House',
+            'whatsapp' => '+447700900999',
+            'address' => 'SECRET-HOUSE-10-DOWNING',
+            'lat' => 51.5,
+            'lng' => -0.12,
+        ]);
+
+        $this->actingAs($founder, 'staff');
+
+        $this->get('/dashboard')
+            ->assertOk()
+            ->assertSee('MRR at risk')
+            ->assertSee('Ending in 30 days')
+            ->assertSee('Plans at the ceiling')
+            ->assertSee('Subscriptions that need you');
+
+        $this->get(SubscriptionResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('Demo Cleaning')
+            ->assertSee('49.00 GBP')
+            ->assertSee('Monthly')
+            ->assertSee('2 / 3')
+            ->assertDontSee('SECRET-HOUSE-10-DOWNING')
+            ->assertDontSee('Hidden House');
+
+        $this->get(SubscriptionResource::getUrl('view', ['record' => $agency->subscription]))
+            ->assertOk()
+            ->assertSee('Nothing due')
+            ->assertSee('49.00 GBP')
+            ->assertDontSee('SECRET-HOUSE-10-DOWNING');
+    }
+
+    public function test_support_does_not_see_subscription_money(): void
+    {
+        $support = User::query()->where('email', 'support@wwork.app')->firstOrFail();
+        $support->forceFill(['must_change_password' => false])->save();
+
+        $this->actingAs($support, 'staff');
+
+        $this->get(SubscriptionResource::getUrl('index'))->assertForbidden();
+        $this->get('/dashboard')
+            ->assertOk()
+            ->assertDontSee('MRR at risk')
+            ->assertDontSee('49.00 GBP');
     }
 }

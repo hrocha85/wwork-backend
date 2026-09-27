@@ -5,8 +5,9 @@ namespace App\Filament\Widgets;
 use App\Enums\PlanCode;
 use App\Enums\StaffPermissionCode;
 use App\Enums\SubscriptionStatus;
-use App\Enums\Trade;
+use App\Filament\Support\PanelLabels;
 use App\Filament\Support\PanelWindow;
+use Filament\Support\Icons\Heroicon;
 use App\Models\Activity;
 use App\Models\Agency;
 use App\Models\Subscription;
@@ -44,24 +45,79 @@ class EmptyDashboardStats extends StatsOverviewWidget
         $campaign = $this->topCampaign(clone $created);
 
         $stats = [
-            Stat::make('Cadastros', (string) $total),
-            Stat::make('Onde se inscrevem', $top),
-            Stat::make('Por campanha', $campaign),
-            Stat::make('Usuários novos', (string) User::query()
+            Stat::make(__('panel.stats.signups'), (string) $total)
+                ->description(__('panel.stats.signups_help'))
+                ->descriptionIcon(Heroicon::OutlinedBuildingOffice2)
+                ->icon(Heroicon::OutlinedBuildingOffice2)
+                ->color('primary'),
+            Stat::make(__('panel.stats.where'), $top)
+                ->description(__('panel.stats.where_help'))
+                ->descriptionIcon(Heroicon::OutlinedMapPin)
+                ->icon(Heroicon::OutlinedMapPin)
+                ->color('primary'),
+            Stat::make(__('panel.stats.campaign'), $campaign)
+                ->description(__('panel.stats.campaign_help'))
+                ->descriptionIcon(Heroicon::OutlinedMegaphone)
+                ->icon(Heroicon::OutlinedMegaphone)
+                ->color('primary'),
+            Stat::make(__('panel.stats.users'), (string) User::query()
                 ->whereHas('membership')
                 ->whereBetween('created_at', [$window['start'], $window['end']])
-                ->count()),
-            Stat::make('Online', User::query()->where('last_seen_at', '>=', now()->subDay())->count().' / '.User::query()->where('last_seen_at', '>=', now()->subDays(7))->count()),
-            Stat::make('Atividade', (string) Activity::query()->whereBetween('created_at', [$window['start'], $window['end']])->count()),
-            Stat::make('Por plano', $this->byPlan()),
-            Stat::make('Falhas', (string) Subscription::query()->where('status', SubscriptionStatus::PastDue)->count()),
+                ->count())
+                ->description(__('panel.stats.users_help'))
+                ->descriptionIcon(Heroicon::OutlinedUserGroup)
+                ->icon(Heroicon::OutlinedUserGroup)
+                ->color('success'),
+            Stat::make(__('panel.stats.online'), User::query()->where('last_seen_at', '>=', now()->subDay())->count().' / '.User::query()->where('last_seen_at', '>=', now()->subDays(7))->count())
+                ->description(__('panel.stats.online_help'))
+                ->descriptionIcon(Heroicon::OutlinedSignal)
+                ->icon(Heroicon::OutlinedSignal)
+                ->color('success'),
+            Stat::make(__('panel.stats.activity'), (string) Activity::query()->whereBetween('created_at', [$window['start'], $window['end']])->count())
+                ->description(__('panel.stats.activity_help'))
+                ->descriptionIcon(Heroicon::OutlinedClipboardDocumentList)
+                ->icon(Heroicon::OutlinedClipboardDocumentList)
+                ->color('primary'),
+            Stat::make(__('panel.stats.plans'), $this->byPlan())
+                ->description(__('panel.stats.plans_help'))
+                ->descriptionIcon(Heroicon::OutlinedRectangleStack)
+                ->icon(Heroicon::OutlinedRectangleStack)
+                ->color('primary'),
+            Stat::make(__('panel.stats.failures'), (string) Subscription::query()->where('status', SubscriptionStatus::PastDue)->count())
+                ->description(__('panel.stats.failures_help'))
+                ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
+                ->icon(Heroicon::OutlinedExclamationTriangle)
+                ->color('warning'),
         ];
 
         $user = auth('staff')->user();
         if ($user instanceof User && $user->hasStaffPermission(StaffPermissionCode::ViewRevenue)) {
             array_splice($stats, 6, 0, [
-                Stat::make('MRR', $this->mrr()),
-                Stat::make('Receita no período', $this->revenue($window['start'], $window['end'])),
+                Stat::make(__('panel.stats.mrr'), $this->mrr())
+                    ->description(__('panel.stats.mrr_help'))
+                    ->descriptionIcon(Heroicon::OutlinedBanknotes)
+                    ->icon(Heroicon::OutlinedBanknotes)
+                    ->color('success'),
+                Stat::make(__('panel.stats.revenue'), $this->revenue($window['start'], $window['end']))
+                    ->description(__('panel.stats.revenue_help'))
+                    ->descriptionIcon(Heroicon::OutlinedBanknotes)
+                    ->icon(Heroicon::OutlinedBanknotes)
+                    ->color('success'),
+                Stat::make(__('panel.stats.at_risk'), $this->atRisk())
+                    ->description(__('panel.stats.at_risk_help'))
+                    ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
+                    ->icon(Heroicon::OutlinedExclamationTriangle)
+                    ->color('warning'),
+                Stat::make(__('panel.stats.ending'), $this->endingSoon())
+                    ->description(__('panel.stats.ending_help'))
+                    ->descriptionIcon(Heroicon::OutlinedCalendar)
+                    ->icon(Heroicon::OutlinedCalendar)
+                    ->color('warning'),
+                Stat::make(__('panel.stats.full'), $this->atCeiling())
+                    ->description(__('panel.stats.full_help'))
+                    ->descriptionIcon(Heroicon::OutlinedUserGroup)
+                    ->icon(Heroicon::OutlinedUserGroup)
+                    ->color('primary'),
             ]);
         }
 
@@ -85,7 +141,7 @@ class EmptyDashboardStats extends StatsOverviewWidget
             ->whereBetween('created_at', [$previousStart, $previousEnd])
             ->count();
         $share = (int) round(((int) $row->total / $total) * 100);
-        $trade = $row->trade instanceof Trade ? $row->trade->value : (string) $row->trade;
+        $trade = PanelLabels::trade($row->trade);
 
         return $trade.' '.$row->total.' ('.$share.'%) · '.$previous.' → '.$row->total;
     }
@@ -102,17 +158,19 @@ class EmptyDashboardStats extends StatsOverviewWidget
             return '—';
         }
 
-        return $row->campaign.' '.$row->total;
+        $name = $row->campaign === 'Direct' ? __('panel.campaign.direct') : $row->campaign;
+
+        return $name.' '.$row->total;
     }
 
     private function byPlan(): string
     {
         $parts = [];
         foreach (PlanCode::cases() as $plan) {
-            $parts[] = $plan->name.' '.Subscription::query()->where('plan', $plan)->count();
+            $parts[] = PanelLabels::plan($plan).' '.Subscription::query()->where('plan', $plan)->count();
         }
-        $parts[] = 'Cortesia '.Subscription::query()->where('status', SubscriptionStatus::Complimentary)->count();
-        $parts[] = 'Canceladas '.Subscription::query()->where('status', SubscriptionStatus::Cancelled)->count();
+        $parts[] = __('panel.status.complimentary').' '.Subscription::query()->where('status', SubscriptionStatus::Complimentary)->count();
+        $parts[] = __('panel.status.cancelled').' '.Subscription::query()->where('status', SubscriptionStatus::Cancelled)->count();
 
         return implode(' · ', $parts);
     }
@@ -150,6 +208,39 @@ class EmptyDashboardStats extends StatsOverviewWidget
         }
 
         return $rows->map(fn ($row): string => $this->money((int) $row->total, (string) $row->currency))->implode(' · ');
+    }
+
+    private function atRisk(): string
+    {
+        $rows = Subscription::query()
+            ->where('status', SubscriptionStatus::PastDue)
+            ->selectRaw('currency, sum(amount_minor) as total')
+            ->groupBy('currency')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return '—';
+        }
+
+        return $rows->map(fn ($row): string => PanelLabels::money((int) $row->total, (string) $row->currency))->implode(' · ');
+    }
+
+    private function endingSoon(): string
+    {
+        $soon = now()->addDays(30);
+
+        return (string) Subscription::query()
+            ->where(function (Builder $query) use ($soon): void {
+                $query->where(fn (Builder $query): Builder => $query->whereNotNull('cancel_at')->where('cancel_at', '<=', $soon))
+                    ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('complimentary_until')->where('complimentary_until', '<=', $soon))
+                    ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('paid_offline_until')->where('paid_offline_until', '<=', $soon));
+            })
+            ->count();
+    }
+
+    private function atCeiling(): string
+    {
+        return (string) Subscription::query()->atCeiling()->count();
     }
 
     private function money(int $minor, string $currency): string

@@ -6,6 +6,7 @@ use App\Filament\Pages\Dashboard;
 use Filament\Actions\Action;
 use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Facades\Filament;
+use Illuminate\Contracts\Support\Htmlable;
 
 class Login extends BaseLogin
 {
@@ -15,7 +16,18 @@ class Login extends BaseLogin
             redirect()->intended(Dashboard::getUrl());
         }
 
-        $this->form->fill();
+        $this->form->fill([
+            'remember' => true,
+        ]);
+    }
+
+    public function getSubheading(): string|Htmlable|null
+    {
+        if (filled($this->userUndertakingMultiFactorAuthentication)) {
+            return parent::getSubheading();
+        }
+
+        return __('panel.login.subheading');
     }
 
     protected function getAuthenticateFormAction(): Action
