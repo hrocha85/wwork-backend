@@ -117,14 +117,10 @@ class DemoAgencySeeder extends Seeder
     private function user(string $email, string $name, string $password): User
     {
         $user = User::query()->firstOrNew(['email' => $email]);
-
-        if (! $user->exists) {
-            $user->password = $password;
-            $user->must_change_password = false;
-            $user->locale = Locale::En;
-            $user->terms_accepted_at = now();
-        }
-
+        $user->password = $password;
+        $user->must_change_password = false;
+        $user->locale = Locale::En;
+        $user->terms_accepted_at = $user->terms_accepted_at ?? now();
         $user->name = $name;
         $user->save();
 
