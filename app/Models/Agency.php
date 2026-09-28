@@ -26,6 +26,7 @@ class Agency extends Model
         'logo_path',
         'vat_registered',
         'tax_id',
+        'booking_token',
     ];
 
     protected static function booted(): void
@@ -76,5 +77,15 @@ class Agency extends Model
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class);
+    }
+
+    public function bookingServices(): HasMany
+    {
+        return $this->hasMany(BookingService::class);
+    }
+
+    public function bookingHours(): HasMany
+    {
+        return $this->hasMany(BookingHour::class);
     }
 }

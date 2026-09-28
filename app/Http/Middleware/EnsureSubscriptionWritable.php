@@ -36,7 +36,7 @@ class EnsureSubscriptionWritable
 
     private function blocksWhenCancelled(string $path): bool
     {
-        foreach (['/clients', '/visits', '/invoices', '/partners', '/payouts', '/invoice-candidates', '/agenda/blocks'] as $piece) {
+        foreach (['/clients', '/visits', '/invoices', '/partners', '/payouts', '/invoice-candidates', '/agenda/blocks', '/booking'] as $piece) {
             if (str_contains($path, $piece)) {
                 return true;
             }

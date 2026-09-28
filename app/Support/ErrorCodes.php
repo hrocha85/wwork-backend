@@ -149,4 +149,16 @@ final class ErrorCodes
     public const AGENCY_PAYMENT_DETAILS_INVALID = 'agency.payment_details_invalid';
 
     public const AGENCY_LOGO_INVALID = 'agency.logo_invalid';
+
+    public const BOOKING_FORBIDDEN = 'booking.forbidden';
+
+    public const BOOKING_NOT_FOUND = 'booking.not_found';
+
+    public const BOOKING_INVALID_SERVICE = 'booking.invalid_service';
+
+    public const BOOKING_INVALID_HOUR = 'booking.invalid_hour';
+
+    public const BOOKING_MISSING_POINT = 'booking.missing_point';
+
+    public const BOOKING_TAKEN = 'booking.taken';
 }

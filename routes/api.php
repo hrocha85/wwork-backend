@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AgencyController;
+use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
@@ -22,6 +23,8 @@ Route::post('/invites/{token}/accept', [TeamController::class, 'accept']);
 Route::get('/invoices/share/{token}', [InvoiceController::class, 'sharedPdf']);
 Route::get('/agenda/{token}', [AgendaController::class, 'show'])->where('token', '(?!blocks$)[A-Za-z0-9]+');
 Route::post('/agenda/{token}/notify', [AgendaController::class, 'notify']);
+Route::get('/book/{token}', [BookingController::class, 'publicShow']);
+Route::post('/book/{token}', [BookingController::class, 'publicStore']);
 Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook']);
 Route::post('/setup-intent', [SubscriptionController::class, 'setup']);
 
@@ -76,6 +79,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/agenda/blocks', [AgendaController::class, 'blocks']);
         Route::post('/agenda/blocks', [AgendaController::class, 'storeBlock']);
         Route::delete('/agenda/blocks/{block}', [AgendaController::class, 'destroyBlock']);
+
+        Route::get('/booking', [BookingController::class, 'show']);
+        Route::put('/booking', [BookingController::class, 'update']);
 
         Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
         Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);

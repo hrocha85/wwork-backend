@@ -56,7 +56,7 @@ class AdminPanelProvider extends PanelProvider
             ->userMenuItems([
                 'language' => Action::make('language')
                     ->label(fn (): string => __('panel.account.language'))
-                    ->icon(Heroicon::OutlinedLanguage)
+                    ->icon(Heroicon::OutlinedCog6Tooth)
                     ->schema([
                         Select::make('locale')
                             ->label(__('panel.account.language'))
