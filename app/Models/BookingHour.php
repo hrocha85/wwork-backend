@@ -12,7 +12,18 @@ class BookingHour extends Model
         'weekday',
         'starts_at',
         'ends_at',
+        'concurrent_slots',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'concurrent_slots' => 'integer',
+        ];
+    }
 
     public function agency(): BelongsTo
     {

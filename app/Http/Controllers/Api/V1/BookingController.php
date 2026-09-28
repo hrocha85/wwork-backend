@@ -3,16 +3,23 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Booking\BookSlot;
+use App\Actions\Booking\DecideBookingRequest;
+use App\Actions\Booking\ListBookingRequests;
 use App\Actions\Booking\ListOpenSlots;
 use App\Actions\Booking\SaveBooking;
 use App\Actions\Booking\ShowBooking;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BookSlotRequest;
+use App\Http\Requests\Api\V1\DecideBookingRequestRequest;
 use App\Http\Requests\Api\V1\SaveBookingRequest;
 use App\Models\Agency;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BookingController extends Controller
 {
@@ -26,27 +33,49 @@ class BookingController extends Controller
         return response()->json($save($request->validated()));
     }
 
-    public function publicShow(string $token, ListOpenSlots $slots): JsonResponse
+    public function requests(ListBookingRequests $list): JsonResponse
+    {
+        return response()->json(['requests' => $list()]);
+    }
+
+    public function decide(int $id, DecideBookingRequestRequest $request, DecideBookingRequest $decide): JsonResponse
+    {
+        return response()->json($decide($id, (string) $request->validated('status')));
+    }
+
+    public function publicShow(Request $request, string $token, ListOpenSlots $slots): JsonResponse
     {
         $agency = $this->agency($token);
+        [$start, $end] = $this->window($request, $agency);
         $agency->loadMissing('bookingServices');
 
         return response()->json([
             'agency_name' => $agency->name,
             'currency' => $agency->currency,
+            'has_logo' => filled($agency->logo_path),
             'services' => $agency->bookingServices->map(fn ($service): array => [
                 'id' => $service->id,
                 'name' => $service->name,
                 'duration_minutes' => $service->duration_minutes,
                 'price_pence' => $service->price_pence,
             ])->values()->all(),
-            'days' => $slots($agency),
+            'days' => $slots($agency, $start, $end),
         ]);
     }
 
     public function publicStore(string $token, BookSlotRequest $request, BookSlot $book): JsonResponse
     {
         return response()->json($book($token, $request->validated()), 201);
+    }
+
+    public function publicLogo(string $token): StreamedResponse
+    {
+        $agency = Agency::query()->where('booking_token', $token)->first();
+        if ($agency === null || ! filled($agency->logo_path) || ! Storage::disk('local')->exists($agency->logo_path)) {
+            throw new ApiException(ErrorCodes::NOT_FOUND, 404);
+        }
+
+        return Storage::disk('local')->response($agency->logo_path);
     }
 
     private function agency(string $token): Agency
@@ -57,5 +86,38 @@ class BookingController extends Controller
         }
 
         return $agency;
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function window(Request $request, Agency $agency): array
+    {
+        $timezone = $agency->timezone ?: 'UTC';
+        $today = Carbon::now($timezone)->startOfDay();
+        $from = $request->query('from');
+        $to = $request->query('to');
+        if (! is_string($from) && ! is_string($to)) {
+            return [$today, $today->copy()->addMonthNoOverflow()->endOfMonth()];
+        }
+        if (! is_string($from) || ! is_string($to)) {
+            throw new ApiException(ErrorCodes::BOOKING_INVALID_RANGE, 422);
+        }
+
+        try {
+            $start = Carbon::createFromFormat('!Y-m-d', $from, $timezone)->startOfDay();
+            $end = Carbon::createFromFormat('!Y-m-d', $to, $timezone)->endOfDay();
+        } catch (\Throwable) {
+            throw new ApiException(ErrorCodes::BOOKING_INVALID_RANGE, 422);
+        }
+
+        if ($end->lt($start) || $start->diffInDays($end) > 62) {
+            throw new ApiException(ErrorCodes::BOOKING_INVALID_RANGE, 422);
+        }
+        if ($start->lt($today)) {
+            $start = $today->copy();
+        }
+
+        return [$start, $end];
     }
 }

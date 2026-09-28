@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Client;
 use App\Models\User;
+use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -62,12 +64,9 @@ class BookingApiTest extends TestCase
             'time' => '09:00',
             'name' => 'Cliente novo',
             'whatsapp' => '+447700900111',
-            'address' => '1 Test Street, London',
-            'lat' => 51.5,
-            'lng' => -0.12,
         ])->assertCreated()->assertJsonPath('ok', true);
 
-        $this->assertNotEmpty($booked->json('visit_id'));
+        $this->assertNotEmpty($booked->json('request_id'));
 
         $this->postJson('/api/v1/book/'.$token, [
             'service_id' => $serviceId,
@@ -75,18 +74,86 @@ class BookingApiTest extends TestCase
             'time' => '09:00',
             'name' => 'Outro',
             'whatsapp' => '+447700900112',
-            'address' => '2 Test Street, London',
-            'lat' => 51.5,
-            'lng' => -0.12,
         ])->assertStatus(409)->assertExactJson(['error' => 'booking.taken']);
 
-        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
-        $this->assertDatabaseHas('visits', [
-            'id' => $booked->json('visit_id'),
-            'assignee_id' => $owner->id,
-            'status' => 'todo',
-            'price_pence' => 8000,
+        $this->assertDatabaseHas('booking_requests', [
+            'id' => $booked->json('request_id'),
+            'status' => 'pending',
+            'client_name' => 'Cliente novo',
         ]);
+        $this->assertDatabaseMissing('visits', [
+            'description' => 'Regular clean',
+        ]);
+    }
+
+    public function test_capacity_counts_visits_and_a_rejected_request_frees_the_slot(): void
+    {
+        $this->login('owner@wwork.test');
+        $saved = $this->putJson('/api/v1/booking', [
+            'services' => [[
+                'name' => 'Regular clean',
+                'duration_minutes' => 60,
+                'price_pence' => 8000,
+            ]],
+            'hours' => [[
+                'weekday' => 'mon',
+                'starts' => '14:00',
+                'ends' => '15:00',
+                'concurrent_slots' => 3,
+            ]],
+        ])->assertOk()->assertJsonPath('hours.0.concurrent_slots', 3);
+        $serviceId = $saved->json('services.0.id');
+        $token = basename((string) $saved->json('url'));
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+        $client = Client::query()->create([
+            'agency_id' => $owner->membership->agency_id,
+            'created_by' => $owner->id,
+            'name' => 'Casa',
+            'whatsapp' => '+447700900000',
+            'address' => '1 Road',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ]);
+        foreach ([1, 2] as $index) {
+            Visit::query()->create([
+                'agency_id' => $owner->membership->agency_id,
+                'client_id' => $client->id,
+                'assignee_id' => $owner->id,
+                'service_date' => '2026-09-28',
+                'service_time' => '14:00:00',
+                'price_pence' => 8000,
+                'lat' => 51.5,
+                'lng' => -0.1,
+                'status' => 'todo',
+            ]);
+        }
+
+        $this->getJson('/api/v1/book/'.$token)->assertOk()
+            ->assertJsonPath('days.0.slots.0.time', '14:00')
+            ->assertJsonPath('days.0.slots.0.remaining', 1);
+
+        $booked = $this->postJson('/api/v1/book/'.$token, [
+            'service_id' => $serviceId,
+            'date' => '2026-09-28',
+            'time' => '14:00',
+            'name' => 'Mais um',
+            'whatsapp' => '+447700900113',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/book/'.$token, [
+            'service_id' => $serviceId,
+            'date' => '2026-09-28',
+            'time' => '14:00',
+            'name' => 'Cheio',
+            'whatsapp' => '+447700900114',
+        ])->assertStatus(409);
+
+        $this->postJson('/api/v1/booking/requests/'.$booked->json('request_id'), [
+            'status' => 'rejected',
+        ])->assertOk()->assertJsonPath('status', 'rejected');
+
+        $this->getJson('/api/v1/book/'.$token)->assertOk()
+            ->assertJsonPath('days.0.slots.0.remaining', 1);
     }
 
     public function test_unknown_link_is_not_found(): void

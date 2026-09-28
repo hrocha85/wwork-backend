@@ -25,6 +25,7 @@ class SaveBookingRequest extends FormRequest
             'hours.*.weekday' => ['required', 'in:mon,tue,wed,thu,fri,sat,sun'],
             'hours.*.starts' => ['required', 'date_format:H:i'],
             'hours.*.ends' => ['required', 'date_format:H:i'],
+            'hours.*.concurrent_slots' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ];
     }
 }

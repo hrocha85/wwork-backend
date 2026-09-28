@@ -46,7 +46,9 @@ class ShowBooking
                 'weekday' => $hour->weekday,
                 'starts' => substr((string) $hour->starts_at, 0, 5),
                 'ends' => substr((string) $hour->ends_at, 0, 5),
+                'concurrent_slots' => (int) ($hour->concurrent_slots ?: 1),
             ])->values()->all(),
+            'requests' => ListBookingRequests::forAgency($agency),
         ];
     }
 

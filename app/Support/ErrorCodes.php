@@ -161,4 +161,6 @@ final class ErrorCodes
     public const BOOKING_MISSING_POINT = 'booking.missing_point';
 
     public const BOOKING_TAKEN = 'booking.taken';
+
+    public const BOOKING_INVALID_RANGE = 'booking.invalid_range';
 }

@@ -196,6 +196,55 @@ class AuthApiTest extends TestCase
         $this->assertTrue(Hash::check('reset-pass', $owner->password));
     }
 
+    public function test_refresh_token_keeps_access_after_the_cookie_is_gone(): void
+    {
+        $this->get('/sanctum/csrf-cookie')->assertNoContent();
+
+        $login = $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $token = $login->json('token');
+        $refresh = $login->json('refresh_token');
+        $this->assertIsString($token);
+        $this->assertNotSame('', $token);
+        $this->assertIsString($refresh);
+
+        $this->postJson('/api/v1/logout')->assertNoContent();
+
+        $this->withToken($token)->getJson('/api/v1/me')
+            ->assertOk()
+            ->assertJsonPath('user.email', 'owner@wwork.test');
+
+        $this->get('/sanctum/csrf-cookie')->assertNoContent();
+
+        $rotated = $this->postJson('/api/v1/refresh', [
+            'refresh_token' => $refresh,
+        ])->assertOk();
+
+        $next = $rotated->json('token');
+        $this->assertIsString($next);
+        $this->assertNotSame($token, $next);
+
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/v1/me')->assertUnauthorized();
+        $this->withToken($next)->getJson('/api/v1/me')->assertOk();
+
+        $this->withToken($next)->postJson('/api/v1/logout', [
+            'refresh_token' => $rotated->json('refresh_token'),
+        ])->assertNoContent();
+
+        $this->withToken($next)->getJson('/api/v1/me')->assertUnauthorized();
+        $this->postJson('/api/v1/password/change', [
+            'current_password' => 'demo-seed-test',
+            'password' => 'new-pass-1',
+            'password_confirmation' => 'new-pass-1',
+        ])->assertUnauthorized();
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

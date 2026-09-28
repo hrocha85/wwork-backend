@@ -2,11 +2,10 @@
 
 namespace App\Actions\Booking;
 
+use App\Enums\BookingRequestStatus;
 use App\Enums\SubscriptionStatus;
-use App\Enums\VisitStatus;
 use App\Models\Agency;
-use App\Models\Client;
-use App\Models\Visit;
+use App\Models\BookingRequest;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
@@ -16,14 +15,10 @@ class BookSlot
 {
     /**
      * @param  array<string, mixed>  $input
-     * @return array{ok: true, visit_id: int}
+     * @return array{ok: true, request_id: int}
      */
     public function __invoke(string $token, array $input): array
     {
-        if (! is_numeric($input['lat'] ?? null) || ! is_numeric($input['lng'] ?? null)) {
-            throw new ApiException(ErrorCodes::BOOKING_MISSING_POINT, 422);
-        }
-
         return DB::transaction(function () use ($token, $input): array {
             $agency = Agency::query()->where('booking_token', $token)->lockForUpdate()->first();
             if ($agency === null) {
@@ -40,7 +35,7 @@ class BookSlot
                 throw new ApiException(ErrorCodes::BOOKING_INVALID_SERVICE, 422);
             }
 
-            if (! app(ListOpenSlots::class)->open($agency, $service->id, (string) $input['date'], (string) $input['time'])) {
+            if (! app(ListOpenSlots::class)->free($agency, $service->id, (string) $input['date'], (string) $input['time'])) {
                 throw new ApiException(ErrorCodes::BOOKING_TAKEN, 409);
             }
 
@@ -49,32 +44,19 @@ class BookSlot
                 throw new ApiException(ErrorCodes::BOOKING_NOT_FOUND, 404);
             }
 
-            $client = Client::query()->create([
+            $request = BookingRequest::query()->create([
                 'agency_id' => $agency->id,
-                'created_by' => $owner->user_id,
-                'name' => $input['name'],
-                'whatsapp' => $input['whatsapp'],
-                'address' => $input['address'],
-                'lat' => $input['lat'],
-                'lng' => $input['lng'],
+                'booking_service_id' => $service->id,
+                'client_name' => $input['name'],
+                'client_phone' => $input['whatsapp'],
+                'requested_date' => $input['date'],
+                'requested_time' => $input['time'],
+                'status' => BookingRequestStatus::Pending,
             ]);
 
-            $visit = Visit::query()->create([
-                'agency_id' => $agency->id,
-                'client_id' => $client->id,
-                'assignee_id' => $owner->user_id,
-                'service_date' => $input['date'],
-                'service_time' => $input['time'],
-                'description' => $service->name,
-                'price_pence' => $service->price_pence,
-                'lat' => $input['lat'],
-                'lng' => $input['lng'],
-                'status' => VisitStatus::Todo,
-            ]);
+            RecordActivity::add($agency->id, $owner->user_id, 'booking.requested');
 
-            RecordActivity::add($agency->id, $owner->user_id, 'booking.created');
-
-            return ['ok' => true, 'visit_id' => $visit->id];
+            return ['ok' => true, 'request_id' => $request->id];
         });
     }
 }

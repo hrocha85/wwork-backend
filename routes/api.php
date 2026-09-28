@@ -17,12 +17,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/refresh', [AuthController::class, 'refresh']);
 Route::post('/forgot-password', [PasswordController::class, 'forgot']);
 Route::post('/reset-password', [PasswordController::class, 'reset']);
 Route::post('/invites/{token}/accept', [TeamController::class, 'accept']);
 Route::get('/invoices/share/{token}', [InvoiceController::class, 'sharedPdf']);
 Route::get('/agenda/{token}', [AgendaController::class, 'show'])->where('token', '(?!blocks$)[A-Za-z0-9]+');
 Route::post('/agenda/{token}/notify', [AgendaController::class, 'notify']);
+Route::get('/book/{token}/logo', [BookingController::class, 'publicLogo']);
 Route::get('/book/{token}', [BookingController::class, 'publicShow']);
 Route::post('/book/{token}', [BookingController::class, 'publicStore']);
 Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook']);
@@ -30,6 +32,7 @@ Route::post('/setup-intent', [SubscriptionController::class, 'setup']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/session', [AuthController::class, 'session']);
     Route::get('/me', [MeController::class, 'show']);
     Route::post('/password/change', [PasswordController::class, 'change']);
 
@@ -82,6 +85,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/booking', [BookingController::class, 'show']);
         Route::put('/booking', [BookingController::class, 'update']);
+        Route::get('/booking/requests', [BookingController::class, 'requests']);
+        Route::post('/booking/requests/{id}', [BookingController::class, 'decide']);
 
         Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
         Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);

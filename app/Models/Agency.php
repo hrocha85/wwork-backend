@@ -88,4 +88,9 @@ class Agency extends Model
     {
         return $this->hasMany(BookingHour::class);
     }
+
+    public function bookingRequests(): HasMany
+    {
+        return $this->hasMany(BookingRequest::class);
+    }
 }

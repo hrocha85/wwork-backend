@@ -55,6 +55,7 @@ class SaveBooking
                 'weekday' => $hour['weekday'],
                 'starts_at' => $hour['starts'],
                 'ends_at' => $hour['ends'],
+                'concurrent_slots' => (int) ($hour['concurrent_slots'] ?? 1),
             ]);
         }
 
