@@ -2,6 +2,8 @@
 
 namespace App\Actions\Field;
 
+use App\Actions\Invoices\CreateInvoice;
+use App\Actions\Invoices\ShareInvoice;
 use App\Actions\OneSignal\NotifyJobFinished;
 use App\Enums\CheckEventType;
 use App\Enums\MembershipRole;
@@ -17,7 +19,7 @@ use Illuminate\Support\Carbon;
 
 class RecordCheckEvent
 {
-    public function __invoke(Visit $visit, string $type, mixed $lat, mixed $lng): CheckEvent
+    public function __invoke(Visit $visit, string $type, mixed $lat, mixed $lng, mixed $paymentMethod = null): CheckEvent
     {
         $actor = AgencyContext::user();
         $membership = AgencyContext::membership();
@@ -66,7 +68,12 @@ class RecordCheckEvent
         }
 
         if ($eventType === CheckEventType::CheckOut) {
+            if (! in_array($paymentMethod, ['cash', 'invoice'], true)) {
+                throw new ApiException(ErrorCodes::VISIT_PAYMENT_REQUIRED, 422);
+            }
             $visit->status = VisitStatus::Done;
+            $visit->payment_method = $paymentMethod;
+            $visit->payment_status = $paymentMethod === 'cash' ? 'paid' : 'pending';
             $duration = $visit->check_in_at === null ? 0 : (int) $visit->check_in_at->diffInSeconds($at);
             if ($membership->role === MembershipRole::Invited) {
                 Payout::query()->create([
@@ -85,6 +92,13 @@ class RecordCheckEvent
 
         if ($eventType === CheckEventType::CheckOut) {
             app(NotifyJobFinished::class)($visit, $duration);
+            if ($paymentMethod === 'invoice') {
+                $invoice = app(CreateInvoice::class)([
+                    'client_id' => $visit->client_id,
+                    'visit_ids' => [$visit->id],
+                ], true);
+                $event->setAttribute('invoice', app(ShareInvoice::class)->issue($invoice));
+            }
         }
 
         $event->setAttribute('duration_seconds', $duration);

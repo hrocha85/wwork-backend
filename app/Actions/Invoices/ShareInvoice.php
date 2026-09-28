@@ -24,6 +24,16 @@ class ShareInvoice
             throw new ApiException(ErrorCodes::INVOICE_FORBIDDEN, 403);
         }
 
+        return $this->issue($invoice);
+    }
+
+    /**
+     * @return array{pdf_url: string, text: string}
+     */
+    public function issue(Invoice $invoice): array
+    {
+        $actor = AgencyContext::user();
+
         if ($invoice->status === InvoiceStatus::ToSend) {
             $invoice->status = InvoiceStatus::Sent;
             $invoice->sent_at = now();

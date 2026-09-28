@@ -28,6 +28,12 @@ class Agency extends Model
         'vat_registered',
         'tax_id',
         'booking_token',
+        'bio',
+        'website',
+        'public_slug',
+        'latitude',
+        'longitude',
+        'average_rating',
     ];
 
     protected static function booted(): void
@@ -47,6 +53,9 @@ class Agency extends Model
         return [
             'trade' => Trade::class,
             'vat_registered' => 'boolean',
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
+            'average_rating' => 'decimal:2',
         ];
     }
 
@@ -93,5 +102,15 @@ class Agency extends Model
     public function bookingRequests(): HasMany
     {
         return $this->hasMany(BookingRequest::class);
+    }
+
+    public function portfolioPhotos(): HasMany
+    {
+        return $this->hasMany(PortfolioPhoto::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 }

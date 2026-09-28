@@ -25,10 +25,13 @@ class AuthController extends Controller
         return response()->json(AuthSessionResource::registered($user), 201);
     }
 
-    public function login(LoginRequest $request, LoginUser $login): JsonResponse
+    public function login(LoginRequest $request, LoginUser $signIn): JsonResponse
     {
-        $user = $login(
-            $request->string('email')->toString(),
+        $identifier = $request->filled('login')
+            ? $request->string('login')->toString()
+            : $request->string('email')->toString();
+        $user = $signIn(
+            $identifier,
             $request->string('password')->toString(),
         );
 

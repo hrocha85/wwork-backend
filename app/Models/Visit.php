@@ -27,6 +27,8 @@ class Visit extends Model
         'lat',
         'lng',
         'status',
+        'payment_method',
+        'payment_status',
         'check_in_at',
         'sync_uuid',
     ];

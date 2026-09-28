@@ -22,12 +22,12 @@ class CreateInvoice
     /**
      * @param  array{client_id: int, visit_ids: array<int, int>}  $input
      */
-    public function __invoke(array $input): Invoice
+    public function __invoke(array $input, bool $fromCheckout = false): Invoice
     {
         $actor = AgencyContext::user();
         $membership = AgencyContext::membership();
 
-        if (! app(InvoicePolicy::class)->create($actor)) {
+        if (! $fromCheckout && ! app(InvoicePolicy::class)->create($actor)) {
             throw new ApiException(ErrorCodes::INVOICE_FORBIDDEN, 403);
         }
 
@@ -43,7 +43,7 @@ class CreateInvoice
             throw new ApiException(ErrorCodes::CLIENT_NOT_FOUND, 404);
         }
 
-        $invoice = DB::transaction(function () use ($actor, $membership, $client, $ids): Invoice {
+        $invoice = DB::transaction(function () use ($actor, $membership, $client, $ids, $fromCheckout): Invoice {
             $visits = Visit::query()->whereIn('id', $ids)->lockForUpdate()->get();
 
             if ($visits->count() !== count($ids)) {
@@ -56,6 +56,9 @@ class CreateInvoice
                 }
                 if ($visit->status !== VisitStatus::Done) {
                     throw new ApiException(ErrorCodes::INVOICE_VISIT_NOT_DONE, 422);
+                }
+                if ($fromCheckout && $visit->assignee_id !== $actor->id) {
+                    throw new ApiException(ErrorCodes::INVOICE_FORBIDDEN, 403);
                 }
                 if ($visit->invoiceLine()->exists()) {
                     throw new ApiException(ErrorCodes::INVOICE_VISIT_ALREADY_INVOICED, 422);

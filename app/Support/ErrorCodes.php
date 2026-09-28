@@ -64,6 +64,10 @@ final class ErrorCodes
 
     public const CLIENT_NOT_FOUND = 'client.not_found';
 
+    public const CLIENT_JOIN_INVALID = 'client.join_invalid';
+
+    public const REVIEW_INVALID = 'review.invalid';
+
     public const VISIT_FORBIDDEN = 'visit.forbidden';
 
     public const VISIT_NOT_ASSIGNEE = 'visit.not_assignee';
@@ -87,6 +91,8 @@ final class ErrorCodes
     public const VISIT_NOT_ACCEPTED = 'visit.not_accepted';
 
     public const VISIT_INVALID_EVENT = 'visit.invalid_event';
+
+    public const VISIT_PAYMENT_REQUIRED = 'visit.payment_required';
 
     public const VISIT_MISSING_GPS = 'visit.missing_gps';
 

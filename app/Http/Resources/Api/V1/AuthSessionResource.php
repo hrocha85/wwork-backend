@@ -15,6 +15,14 @@ class AuthSessionResource
     public static function login(User $user): array
     {
         $user->loadMissing('membership.agency');
+
+        if ($user->membership === null) {
+            return [
+                'user' => self::clientUser($user),
+                'agency' => null,
+            ];
+        }
+
         $agency = $user->membership->agency;
 
         return [
@@ -50,6 +58,16 @@ class AuthSessionResource
     public static function me(User $user): array
     {
         $user->loadMissing('membership.agency.subscription');
+
+        if ($user->membership === null) {
+            return [
+                'user' => self::clientUser($user),
+                'agency' => null,
+                'team_count' => 0,
+                'max_seats' => null,
+            ];
+        }
+
         $agency = $user->membership->agency;
         $subscription = $agency->subscription;
         $agencyPayload = self::agency($agency, $user->membership->role === MembershipRole::Owner);
@@ -115,6 +133,27 @@ class AuthSessionResource
     /**
      * @return array<string, mixed>
      */
+    private static function clientUser(User $user): array
+    {
+        $avatar = $user->clients()->whereNotNull('avatar_path')->exists();
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => 'client',
+            'locale' => $user->locale->value,
+            'must_change_password' => $user->must_change_password,
+            'first_access_at' => self::iso($user->first_access_at, 'UTC'),
+            'last_seen_at' => self::iso($user->last_seen_at, 'UTC'),
+            'has_avatar' => $avatar,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private static function agency(Agency $agency, bool $withInvoice = false): array
     {
         $payload = [
@@ -136,6 +175,9 @@ class AuthSessionResource
             $payload['vat_registered'] = $agency->vat_registered;
             $payload['tax_id'] = $agency->tax_id;
             $payload['has_logo'] = filled($agency->logo_path);
+            $payload['bio'] = $agency->bio;
+            $payload['website'] = $agency->website;
+            $payload['public_slug'] = $agency->public_slug;
         }
 
         return $payload;

@@ -19,6 +19,7 @@ class StoreClientRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'min:2', 'max:80'],
             'whatsapp' => ['required', 'string', 'max:32'],
+            'email' => ['nullable', 'email', 'max:255'],
             'address' => ['required', 'string', 'max:255'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],

@@ -45,6 +45,7 @@ class HouseMoneyApiTest extends TestCase
         ])->assertOk();
         $this->postJson('/api/v1/visits/'.$offered.'/events', [
             'type' => 'check_out',
+            'payment_method' => 'cash',
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();
@@ -74,6 +75,7 @@ class HouseMoneyApiTest extends TestCase
         ])->assertOk();
         $this->postJson('/api/v1/visits/'.$foreign.'/events', [
             'type' => 'check_out',
+            'payment_method' => 'cash',
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();
@@ -139,6 +141,7 @@ class HouseMoneyApiTest extends TestCase
         ])->assertOk();
         $this->postJson('/api/v1/visits/'.$visit.'/events', [
             'type' => 'check_out',
+            'payment_method' => 'cash',
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();

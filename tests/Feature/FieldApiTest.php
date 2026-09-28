@@ -62,6 +62,7 @@ class FieldApiTest extends TestCase
         Carbon::setTestNow('2026-09-25 12:01:30');
         $this->postJson('/api/v1/visits/'.$mine.'/events', [
             'type' => 'check_out',
+            'payment_method' => 'cash',
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk()->assertJsonPath('visit_status', 'done')->assertJsonPath('duration_seconds', 90);
@@ -94,6 +95,7 @@ class FieldApiTest extends TestCase
 
         $this->postJson('/api/v1/visits/'.$offered.'/events', [
             'type' => 'check_out',
+            'payment_method' => 'cash',
             'lat' => 51.5034,
             'lng' => -0.1276,
         ])->assertOk()->assertJsonPath('visit_status', 'done');
@@ -144,6 +146,58 @@ class FieldApiTest extends TestCase
                 ['id' => $goal->id + 99, 'completed' => false],
             ],
         ])->assertNotFound()->assertExactJson(['error' => 'visit.goal_not_found']);
+    }
+
+    public function test_checkout_cash_skips_the_invoice_and_invoice_creates_one(): void
+    {
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+        $partner = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
+        $this->login('owner@wwork.test');
+        $client = $this->house($owner);
+        $cash = $this->postJson('/api/v1/visits', $this->body($client, $owner->id))->assertCreated()->json('id');
+        $this->postJson('/api/v1/visits/'.$cash.'/events', [
+            'type' => 'check_in',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertOk();
+        $this->postJson('/api/v1/visits/'.$cash.'/events', [
+            'type' => 'check_out',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertStatus(422);
+
+        $this->postJson('/api/v1/visits/'.$cash.'/events', [
+            'type' => 'check_out',
+            'payment_method' => 'cash',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertOk()->assertJsonPath('payment_status', 'paid')->assertJsonPath('invoice', null);
+        $this->assertDatabaseHas('visits', [
+            'id' => $cash,
+            'payment_method' => 'cash',
+            'payment_status' => 'paid',
+        ]);
+        $this->assertDatabaseCount('invoices', 0);
+
+        $billed = $this->postJson('/api/v1/visits', $this->body($client, $partner->id))->assertCreated()->json('id');
+        $this->postJson('/api/v1/logout')->assertNoContent();
+        $this->login('invited@wwork.test');
+        $this->postJson('/api/v1/visits/'.$billed.'/accept')->assertOk();
+        $this->postJson('/api/v1/visits/'.$billed.'/events', [
+            'type' => 'check_in',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertOk();
+        $issued = $this->postJson('/api/v1/visits/'.$billed.'/events', [
+            'type' => 'check_out',
+            'payment_method' => 'invoice',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertOk();
+        $issued->assertJsonPath('payment_status', 'pending');
+        $this->assertStringContainsString('/api/v1/invoices/share/', (string) $issued->json('invoice.pdf_url'));
+        $this->assertDatabaseCount('invoices', 1);
+        $this->assertDatabaseHas('payouts', ['visit_id' => $billed, 'user_id' => $partner->id]);
     }
 
     private function login(string $email): void
