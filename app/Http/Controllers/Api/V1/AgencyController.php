@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Agency\StoreAgencyLogo;
 use App\Actions\Agency\UpdateInvoiceDetails;
+use App\Actions\Auth\CompleteFirstAccess;
 use App\Enums\MembershipRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\CompleteFirstAccessRequest;
 use App\Http\Requests\Api\V1\UpdateInvoiceDetailsRequest;
 use App\Http\Resources\Api\V1\AuthSessionResource;
 use App\Models\User;
@@ -25,6 +27,13 @@ class AgencyController extends Controller
 
         /** @var User $user */
         $user = $request->user();
+
+        return response()->json(AuthSessionResource::me($user));
+    }
+
+    public function onboarding(CompleteFirstAccessRequest $request, CompleteFirstAccess $complete): JsonResponse
+    {
+        $user = $complete($request->validated());
 
         return response()->json(AuthSessionResource::me($user));
     }

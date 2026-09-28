@@ -2,7 +2,7 @@
 
 return [
     'login' => [
-        'subheading' => 'Doar echipa internă. Cine curăță intră în aplicație, nu aici.',
+        'subheading' => 'Doar echipa internă. Cine prestează serviciul intră în aplicație, nu aici.',
     ],
     'account' => [
         'language' => 'Limbă',

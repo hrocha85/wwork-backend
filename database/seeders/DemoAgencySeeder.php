@@ -122,6 +122,9 @@ class DemoAgencySeeder extends Seeder
         $user->locale = Locale::En;
         $user->terms_accepted_at = $user->terms_accepted_at ?? now();
         $user->name = $name;
+        if ($user->first_access_at === null) {
+            $user->first_access_at = now();
+        }
         $user->save();
 
         return $user;

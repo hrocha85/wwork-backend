@@ -22,6 +22,8 @@ final class ErrorCodes
 
     public const REGISTER_INVALID_TRADE = 'register.invalid_trade';
 
+    public const ONBOARDING_INVALID = 'onboarding.invalid';
+
     public const REGISTER_TERMS_REQUIRED = 'register.terms_required';
 
     public const REGISTER_PAYMENT_UNAVAILABLE = 'register.payment_unavailable';

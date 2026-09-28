@@ -101,6 +101,7 @@ class AuthSessionResource
             'role' => $user->membership?->role?->value,
             'locale' => $user->locale->value,
             'must_change_password' => $user->must_change_password,
+            'first_access_at' => self::iso($user->first_access_at, $timezone),
             'last_seen_at' => self::iso($user->last_seen_at, $timezone),
         ];
 
@@ -124,6 +125,7 @@ class AuthSessionResource
             'country' => $agency->country,
             'invoice_region' => $agency->invoice_region,
             'trade' => $agency->trade->value,
+            'trade_detail' => $agency->trade_detail,
         ];
 
         if ($withInvoice) {

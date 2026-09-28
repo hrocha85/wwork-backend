@@ -2,7 +2,7 @@
 
 return [
     'login' => [
-        'subheading' => 'Staff only. Cleaners sign in on the app, not here.',
+        'subheading' => 'Staff only. The business signs in on the app, not here.',
     ],
     'account' => [
         'language' => 'Language',
@@ -76,7 +76,7 @@ return [
         'one' => 'agency',
         'section' => 'Agency',
         'section_help' => 'Profile, plan and counts. House addresses and invoice PDFs stay out of this panel.',
-        'list_help' => 'Every cleaning business on WWork. Open a row to see the plan, the owner and the counts.',
+        'list_help' => 'Every business on WWork. Open a row to see the plan, the owner and the counts.',
         'view_help' => 'Subscription and headcount for this business. Assign a plan here when finance needs to.',
         'name' => 'Name',
         'trade' => 'Trade',
@@ -109,7 +109,7 @@ return [
     'people' => [
         'one' => 'person',
         'section' => 'Person',
-        'section_help' => 'Owner or invited cleaner. This list is not the internal staff.',
+        'section_help' => 'Owner or invited worker. This list is not the internal staff.',
         'list_help' => 'People who use the app. Search by name or email. Internal accounts stay out of this list.',
         'view_help' => 'Role, language and last sign-in. A password reset for this person is a separate action.',
         'name' => 'Name',
