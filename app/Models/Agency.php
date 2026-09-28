@@ -17,6 +17,7 @@ class Agency extends Model
         'country',
         'invoice_region',
         'trade',
+        'trade_detail',
         'utm_source',
         'utm_campaign',
         'legal_address',

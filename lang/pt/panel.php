@@ -2,7 +2,7 @@
 
 return [
     'login' => [
-        'subheading' => 'Só a equipe interna. Quem limpa entra no app, não aqui.',
+        'subheading' => 'Só a equipe interna. Quem presta o serviço entra no app, não aqui.',
     ],
     'account' => [
         'language' => 'Idioma',

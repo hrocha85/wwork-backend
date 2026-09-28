@@ -2,7 +2,7 @@
 
 return [
     'login' => [
-        'subheading' => 'Tylko zespół wewnętrzny. Osoby sprzątające logują się w aplikacji, nie tutaj.',
+        'subheading' => 'Tylko zespół wewnętrzny. Kto świadczy usługę, loguje się w aplikacji, nie tutaj.',
     ],
     'account' => [
         'language' => 'Język',

@@ -126,6 +126,9 @@ class DemoAgencySeeder extends Seeder
         }
 
         $user->name = $name;
+        if ($user->first_access_at === null) {
+            $user->first_access_at = now();
+        }
         $user->save();
 
         return $user;

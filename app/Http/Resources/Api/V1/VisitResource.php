@@ -185,6 +185,7 @@ class VisitResource
             'lat' => (float) $visit->lat,
             'lng' => (float) $visit->lng,
             'check_in_at' => $visit->check_in_at?->timezone($timezone)->toIso8601String(),
+            'photo_count' => $visit->photos->count(),
             'goals' => $visit->goals->map(fn (VisitGoal $goal): array => [
                 'id' => $goal->id,
                 'text' => $goal->text,

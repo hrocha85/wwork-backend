@@ -58,7 +58,6 @@ class NotifyJobFinished
     {
         return match ($trade) {
             Trade::Lawn => 'Your lawn visit is done',
-            Trade::Cleaning => 'Your clean is done',
             default => 'Your visit is done',
         };
     }
