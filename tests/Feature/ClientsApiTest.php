@@ -196,6 +196,24 @@ class ClientsApiTest extends TestCase
         $this->assertTrue(Client::query()->where('whatsapp', '+447700900777')->whereNull('lat')->exists());
     }
 
+    public function test_sheet_import_keeps_a_contact_that_still_needs_an_address(): void
+    {
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $rows = [
+            ['name' => 'Contato Sem Rua', 'whatsapp' => '+447700900888', 'address' => '', 'email' => ''],
+        ];
+
+        $this->postJson('/api/v1/clients/import', ['commit' => true, 'rows' => $rows])->assertOk()
+            ->assertJsonPath('counts.ok', 1)
+            ->assertJsonPath('rows.0.needs_address', true);
+
+        $this->assertTrue(Client::query()->where('whatsapp', '+447700900888')->where('address', '')->exists());
+    }
+
     public function test_calendar_import_creates_a_visit_only_for_a_known_client(): void
     {
         $this->postJson('/api/v1/login', [

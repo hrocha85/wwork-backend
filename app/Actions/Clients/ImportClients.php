@@ -42,7 +42,7 @@ class ImportClients
                 $reason = 'name';
             } elseif ($digits === '' || mb_strlen($phone) > 32) {
                 $reason = 'phone';
-            } elseif ($address === '' || mb_strlen($address) > 255) {
+            } elseif (mb_strlen($address) > 255) {
                 $reason = 'address';
             } elseif ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
                 $reason = 'email';
@@ -66,7 +66,13 @@ class ImportClients
                     ]);
                     $known[$digits] = true;
                 }
-                $report[] = ['line' => $line, 'status' => 'ok', 'name' => $name, 'needs_pin' => true];
+                $report[] = [
+                    'line' => $line,
+                    'status' => 'ok',
+                    'name' => $name,
+                    'needs_pin' => true,
+                    'needs_address' => $address === '',
+                ];
             } elseif ($reason === 'duplicate') {
                 $duplicate++;
                 $report[] = ['line' => $line, 'status' => 'duplicate', 'name' => $name, 'reason' => 'duplicate'];

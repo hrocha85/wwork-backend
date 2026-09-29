@@ -49,6 +49,9 @@ class ClientController extends Controller
         if ($request->exists('note')) {
             $model->note = $request->string('note')->toString();
         }
+        if ($request->exists('address')) {
+            $model->address = mb_substr(trim($request->string('address')->toString()), 0, 255);
+        }
         if ($request->filled('lat') && $request->filled('lng')) {
             $model->lat = $request->input('lat');
             $model->lng = $request->input('lng');
