@@ -23,6 +23,11 @@ class TeamPolicy
         return $this->isOwner($user);
     }
 
+    public function cancel(User $user): bool
+    {
+        return $this->isOwner($user);
+    }
+
     public function updateRate(User $user, Membership $membership): bool
     {
         return $this->isOwner($user)

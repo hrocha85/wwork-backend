@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\MembershipRole;
+use App\Mail\PartnerInvited;
 use App\Models\Invite;
 use App\Models\Membership;
 use App\Models\User;
@@ -156,12 +157,14 @@ class TeamApiTest extends TestCase
             'rate' => 55,
         ])->assertCreated()->json('invite.id');
 
-        $before = Invite::query()->findOrFail($inviteId)->token;
+        $before = Invite::query()->findOrFail($inviteId)->token_hash;
 
         $resent = $this->postJson('/api/v1/invites/'.$inviteId.'/resend')->assertOk();
-        $after = $resent->json('invite.token');
+        $resent->assertJsonMissingPath('invite.token');
+        $after = Invite::query()->findOrFail($inviteId)->token_hash;
         $this->assertNotSame($before, $after);
-        $this->assertSame(40, strlen($after));
+        $this->assertSame(64, strlen($after));
+        Mail::assertSent(PartnerInvited::class, 2);
 
         $invited = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
         $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
@@ -185,5 +188,146 @@ class TeamApiTest extends TestCase
             'table_name' => 'memberships',
             'sync_uuid' => Membership::withTrashed()->where('user_id', $invited->id)->value('sync_uuid'),
         ]);
+    }
+
+    public function test_one_email_carries_the_link_and_only_the_hash_is_stored(): void
+    {
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $created = $this->postJson('/api/v1/partners', [
+            'email' => 'Maya@Wwork.test',
+            'rate' => 60,
+        ])->assertCreated();
+
+        $created->assertJsonMissingPath('invite.token');
+        $invite = Invite::query()->findOrFail($created->json('invite.id'));
+        $this->assertNull($invite->token);
+        $this->assertSame(64, strlen((string) $invite->token_hash));
+
+        $plain = null;
+        Mail::assertSent(PartnerInvited::class, function (PartnerInvited $mail) use (&$plain): bool {
+            $prefix = config('wwork.frontend_url').'/invites/';
+            if (! $mail->hasTo('maya@wwork.test') || ! str_starts_with($mail->url, $prefix)) {
+                return false;
+            }
+            $plain = substr($mail->url, strlen($prefix));
+
+            return true;
+        });
+        Mail::assertSent(PartnerInvited::class, 1);
+        $this->assertSame($invite->token_hash, Invite::hashToken((string) $plain));
+
+        $rendered = (new PartnerInvited($invite, $invite->url((string) $plain)))->locale('pt');
+        $rendered->assertSeeInHtml($invite->url((string) $plain));
+        $rendered->assertSeeInHtml('Criar minha conta');
+        $rendered->assertSeeInText('Criar minha conta');
+        $rendered->assertHasSubject('Você foi convidado para a equipe de '.$invite->agency->name.' no WWork');
+
+        $this->postJson('/api/v1/logout')->assertNoContent();
+
+        $this->postJson('/api/v1/invites/'.$invite->token_hash.'/accept', [
+            'name' => 'Maya',
+            'password' => 'secret123',
+            'locale' => 'en',
+            'terms_accepted' => true,
+        ])->assertNotFound()->assertExactJson(['error' => 'invite.expired']);
+
+        $this->postJson('/api/v1/invites/'.$plain.'/accept', [
+            'name' => 'Maya',
+            'password' => 'secret123',
+            'locale' => 'en',
+            'terms_accepted' => true,
+        ])->assertOk()->assertJsonPath('user.role', 'invited');
+
+        $this->assertNotNull($invite->fresh()->accepted_at);
+        Mail::assertSent(PartnerInvited::class, 1);
+    }
+
+    public function test_owner_cancels_a_pending_invite_and_the_link_stops_working(): void
+    {
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $inviteId = $this->postJson('/api/v1/partners', [
+            'email' => 'ana@wwork.test',
+            'rate' => 55,
+        ])->assertCreated()->json('invite.id');
+
+        $plain = null;
+        Mail::assertSent(PartnerInvited::class, function (PartnerInvited $mail) use (&$plain): bool {
+            $plain = substr($mail->url, strlen(config('wwork.frontend_url').'/invites/'));
+
+            return true;
+        });
+
+        $this->postJson('/api/v1/invites/'.$inviteId.'/cancel')->assertNoContent();
+        $this->assertNotNull(Invite::query()->findOrFail($inviteId)->cancelled_at);
+
+        $this->getJson('/api/v1/team')->assertOk()->assertJsonCount(0, 'pending_invites');
+
+        $this->postJson('/api/v1/invites/'.$inviteId.'/cancel')
+            ->assertStatus(409)
+            ->assertExactJson(['error' => 'invite.cancelled']);
+
+        $this->postJson('/api/v1/invites/'.$inviteId.'/resend')
+            ->assertStatus(409)
+            ->assertExactJson(['error' => 'invite.cancelled']);
+
+        $this->postJson('/api/v1/partners', [
+            'email' => 'ana@wwork.test',
+            'rate' => 55,
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/logout')->assertNoContent();
+
+        $this->postJson('/api/v1/invites/'.$plain.'/accept', [
+            'name' => 'Ana',
+            'password' => 'secret123',
+            'locale' => 'en',
+            'terms_accepted' => true,
+        ])->assertStatus(409)->assertExactJson(['error' => 'invite.cancelled']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'ana@wwork.test']);
+    }
+
+    public function test_invited_cannot_cancel_and_accepted_invite_cannot_be_cancelled(): void
+    {
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+
+        $invite = Invite::query()->create([
+            'agency_id' => $owner->membership->agency_id,
+            'invited_by' => $owner->id,
+            'email' => 'done@wwork.test',
+            'token' => 'legacy-token',
+            'rate' => 50,
+            'expires_at' => now()->addDays(7),
+            'sent_at' => now(),
+            'accepted_at' => now(),
+        ]);
+
+        $this->postJson('/api/v1/login', [
+            'email' => 'invited@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $this->postJson('/api/v1/invites/'.$invite->id.'/cancel')
+            ->assertForbidden()
+            ->assertExactJson(['error' => 'team.not_owner']);
+
+        $this->postJson('/api/v1/logout')->assertNoContent();
+
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $this->postJson('/api/v1/invites/'.$invite->id.'/cancel')
+            ->assertStatus(409)
+            ->assertExactJson(['error' => 'invite.already_accepted']);
     }
 }

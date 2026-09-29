@@ -3,7 +3,6 @@
 namespace App\Actions\Team;
 
 use App\Enums\PlanCode;
-use App\Mail\PartnerInvited;
 use App\Models\Invite;
 use App\Models\User;
 use App\Policies\TeamPolicy;
@@ -12,8 +11,6 @@ use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 class InvitePartner
 {
@@ -41,6 +38,7 @@ class InvitePartner
             ->where('agency_id', $agency->id)
             ->where('email', $email)
             ->whereNull('accepted_at')
+            ->whereNull('cancelled_at')
             ->where('expires_at', '>', now())
             ->exists();
 
@@ -55,29 +53,21 @@ class InvitePartner
             throw new ApiException(ErrorCodes::TEAM_SEAT_LIMIT, 403);
         }
 
-        $invite = Invite::query()->create([
+        $invite = new Invite([
             'agency_id' => $agency->id,
             'invited_by' => $actor->id,
             'email' => $email,
-            'token' => Str::random(40),
             'rate' => $rate,
-            'expires_at' => now()->addDays(7),
+            'expires_at' => now()->addDays(Invite::TTL_DAYS),
             'sent_at' => now(),
         ]);
+        $plain = $invite->rotateToken();
+        $invite->save();
 
-        $this->send($invite);
+        app(SendInviteMail::class)($invite, $plain, $actor);
 
         RecordActivity::add($agency->id, $actor->id, 'team.invited');
 
         return $invite->fresh('agency');
-    }
-
-    private function send(Invite $invite): void
-    {
-        try {
-            Mail::to($invite->email)->send(new PartnerInvited($invite));
-        } catch (\Throwable) {
-            RecordActivity::add($invite->agency_id, $invite->invited_by, 'mail.failed');
-        }
     }
 }

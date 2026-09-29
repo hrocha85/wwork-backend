@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Team\AcceptInvite;
+use App\Actions\Team\CancelInvite;
 use App\Actions\Team\InvitePartner;
 use App\Actions\Team\RemoveMember;
 use App\Actions\Team\ResendInvite;
@@ -48,6 +49,13 @@ class TeamController extends Controller
         return response()->json(
             TeamResource::invite($updated, AgencyContext::membership()->agency->timezone),
         );
+    }
+
+    public function cancel(int $invite, CancelInvite $cancel): Response
+    {
+        $cancel($this->inviteInAgency($invite));
+
+        return response()->noContent();
     }
 
     public function accept(string $token, AcceptInviteRequest $request, AcceptInvite $accept): JsonResponse
