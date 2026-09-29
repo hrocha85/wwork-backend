@@ -3,10 +3,12 @@
 namespace App\Actions\Booking;
 
 use App\Enums\BookingRequestStatus;
+use App\Mail\QuoteAnsweredMail;
 use App\Models\Agency;
 use App\Models\BookingRequest;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use Illuminate\Support\Facades\DB;
 
 class AnswerQuote
@@ -43,6 +45,12 @@ class AnswerQuote
                 $request->status = BookingRequestStatus::Rejected;
             }
             $request->save();
+
+            app(MailNotifier::class)->toOwner(
+                $accept ? 'quote.accepted' : 'quote.rejected',
+                $agency,
+                new QuoteAnsweredMail($request, $accept),
+            );
 
             return OpenQuote::present($request->fresh('agency'));
         });

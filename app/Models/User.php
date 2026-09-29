@@ -4,10 +4,11 @@ namespace App\Models;
 
 use App\Enums\Locale;
 use App\Enums\StaffPermissionCode;
+use App\Mail\PasswordResetMail;
+use App\Support\MailNotifier;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -91,8 +92,15 @@ class User extends Authenticatable implements FilamentUser
 
     public function sendPasswordResetNotification($token): void
     {
-        $this->notify(
-            (new ResetPassword($token))->locale($this->locale->value),
+        $url = config('wwork.frontend_url').'/reset-password?token='.$token.'&email='.urlencode($this->getEmailForPasswordReset());
+        $minutes = (int) config('auth.passwords.users.expire');
+
+        app(MailNotifier::class)->toUser(
+            'auth.password_reset',
+            $this,
+            new PasswordResetMail($url, $minutes),
+            $this->membership?->agency_id,
+            $this->id,
         );
     }
 }
