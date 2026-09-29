@@ -26,6 +26,7 @@ class Invoice extends Model
         'pdf_path',
         'sent_at',
         'paid_at',
+        'paid_note',
         'sync_uuid',
     ];
 

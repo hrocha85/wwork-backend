@@ -85,7 +85,13 @@ class VisitController extends Controller
     public function event(StoreEventRequest $request, int $visit, RecordCheckEvent $record): JsonResponse
     {
         $model = $this->visit($visit);
-        $event = $record($model, $request->string('type')->toString(), $request->input('lat'), $request->input('lng'));
+        $event = $record(
+            $model,
+            $request->string('type')->toString(),
+            $request->input('lat'),
+            $request->input('lng'),
+            $request->input('payment_method'),
+        );
         $model->refresh();
 
         return response()->json(VisitResource::event($event, $model));

@@ -12,7 +12,7 @@ use App\Support\RecordActivity;
 class CreateClient
 {
     /**
-     * @param  array{name: string, whatsapp: string, address: string, lat: mixed, lng: mixed}  $input
+     * @param  array{name: string, whatsapp: string, address: string, lat: mixed, lng: mixed, email?: string|null}  $input
      */
     public function __invoke(array $input): Client
     {
@@ -32,6 +32,7 @@ class CreateClient
             'created_by' => $actor->id,
             'name' => $input['name'],
             'whatsapp' => $input['whatsapp'],
+            'email' => filled($input['email'] ?? null) ? $input['email'] : null,
             'address' => $input['address'],
             'lat' => $input['lat'],
             'lng' => $input['lng'],

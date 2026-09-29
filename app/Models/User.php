@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -20,6 +21,7 @@ use Laravel\Sanctum\HasApiTokens;
 #[Fillable([
     'name',
     'email',
+    'phone',
     'password',
     'locale',
     'last_seen_at',
@@ -65,6 +67,11 @@ class User extends Authenticatable implements FilamentUser
     public function membership(): HasOne
     {
         return $this->hasOne(Membership::class);
+    }
+
+    public function clients(): HasMany
+    {
+        return $this->hasMany(Client::class);
     }
 
     public function canAccessPanel(Panel $panel): bool

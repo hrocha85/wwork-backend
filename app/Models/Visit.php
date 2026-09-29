@@ -27,6 +27,8 @@ class Visit extends Model
         'lat',
         'lng',
         'status',
+        'payment_method',
+        'payment_status',
         'check_in_at',
         'sync_uuid',
     ];
@@ -81,6 +83,11 @@ class Visit extends Model
     public function payout(): HasOne
     {
         return $this->hasOne(Payout::class);
+    }
+
+    public function invoiceLines(): HasMany
+    {
+        return $this->hasMany(InvoiceLine::class);
     }
 
     public function invoiceLine(): HasOne

@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\ClientController;
+use App\Http\Controllers\Api\V1\ClientPortalController;
+use App\Http\Controllers\Api\V1\PublicAgencyController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -22,11 +24,23 @@ Route::post('/forgot-password', [PasswordController::class, 'forgot']);
 Route::post('/reset-password', [PasswordController::class, 'reset']);
 Route::post('/invites/{token}/accept', [TeamController::class, 'accept']);
 Route::get('/invoices/share/{token}', [InvoiceController::class, 'sharedPdf']);
-Route::get('/agenda/{token}', [AgendaController::class, 'show'])->where('token', '(?!blocks$)[A-Za-z0-9]+');
+Route::get('/agenda/{token}', [AgendaController::class, 'show'])->where('token', '(?!blocks$)[A-Za-z0-9-]+');
 Route::post('/agenda/{token}/notify', [AgendaController::class, 'notify']);
 Route::get('/book/{token}/logo', [BookingController::class, 'publicLogo']);
+Route::post('/book/{token}/quotes', [BookingController::class, 'publicQuote']);
+Route::get('/book/{token}/quotes/{publicToken}/photo', [BookingController::class, 'publicQuotePhoto']);
+Route::post('/book/{token}/quotes/{publicToken}', [BookingController::class, 'publicQuoteAnswer']);
+Route::get('/book/{token}/quotes/{publicToken}', [BookingController::class, 'publicQuoteShow']);
 Route::get('/book/{token}', [BookingController::class, 'publicShow']);
 Route::post('/book/{token}', [BookingController::class, 'publicStore']);
+Route::get('/search', [ClientPortalController::class, 'search']);
+Route::get('/join/{token}', [ClientPortalController::class, 'preview']);
+Route::post('/join/{token}', [ClientPortalController::class, 'accept']);
+Route::get('/agency/{slug}/logo', [PublicAgencyController::class, 'logo']);
+Route::get('/agency/{slug}/photos/{photo}', [PublicAgencyController::class, 'photo']);
+Route::get('/agency/{slug}/avatars/{client}', [PublicAgencyController::class, 'avatar']);
+Route::get('/agency/{slug}/reviews', [PublicAgencyController::class, 'reviews']);
+Route::get('/agency/{slug}', [PublicAgencyController::class, 'show']);
 Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook']);
 Route::post('/setup-intent', [SubscriptionController::class, 'setup']);
 
@@ -34,6 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/session', [AuthController::class, 'session']);
     Route::get('/me', [MeController::class, 'show']);
+    Route::get('/client/home', [ClientPortalController::class, 'home']);
+    Route::post('/client/reviews', [ClientPortalController::class, 'review']);
+    Route::post('/client/avatar', [ClientPortalController::class, 'avatar']);
     Route::post('/password/change', [PasswordController::class, 'change']);
 
     Route::middleware(['app.password', 'subscription.write'])->group(function () {
@@ -42,6 +59,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/onboarding', [AgencyController::class, 'onboarding']);
         Route::post('/agency/logo', [AgencyController::class, 'logo']);
         Route::get('/agency/logo', [AgencyController::class, 'showLogo']);
+        Route::patch('/agency/profile', [PublicAgencyController::class, 'update']);
+        Route::post('/agency/portfolio', [PublicAgencyController::class, 'storePhoto']);
+        Route::delete('/agency/portfolio/{photo}', [PublicAgencyController::class, 'destroyPhoto']);
         Route::post('/me/location', [LocationController::class, 'update']);
         Route::get('/team/locations', [LocationController::class, 'index']);
 
@@ -53,7 +73,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/clients', [ClientController::class, 'index']);
         Route::post('/clients', [ClientController::class, 'store']);
+        Route::post('/clients/import', [ClientController::class, 'import']);
+        Route::post('/clients/import/calendar', [ClientController::class, 'importCalendar']);
         Route::get('/clients/{client}', [ClientController::class, 'show']);
+        Route::patch('/clients/{client}', [ClientController::class, 'update']);
         Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
 
         Route::get('/visits.ics', [VisitController::class, 'ics']);
@@ -80,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payouts/{payout}/paid', [BillingController::class, 'pay']);
 
         Route::post('/clients/{client}/agenda-link', [AgendaController::class, 'link']);
+        Route::post('/clients/{client}/join-link', [ClientPortalController::class, 'link']);
         Route::get('/agenda/blocks', [AgendaController::class, 'blocks']);
         Route::post('/agenda/blocks', [AgendaController::class, 'storeBlock']);
         Route::delete('/agenda/blocks/{block}', [AgendaController::class, 'destroyBlock']);
@@ -87,6 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/booking', [BookingController::class, 'show']);
         Route::put('/booking', [BookingController::class, 'update']);
         Route::get('/booking/requests', [BookingController::class, 'requests']);
+        Route::post('/booking/requests/{id}/reply', [BookingController::class, 'reply']);
         Route::post('/booking/requests/{id}', [BookingController::class, 'decide']);
 
         Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);

@@ -125,8 +125,11 @@ class VisitResource
             'lng' => (float) $event->lng,
             'at' => $event->occurred_at->timezone($timezone)->toIso8601String(),
             'visit_status' => $visit->status->value,
+            'payment_method' => $visit->payment_method,
+            'payment_status' => $visit->payment_status,
             'check_in_at' => $visit->check_in_at?->timezone($timezone)->toIso8601String(),
             'duration_seconds' => $event->getAttribute('duration_seconds'),
+            'invoice' => $event->getAttribute('invoice'),
         ];
     }
 
@@ -167,11 +170,8 @@ class VisitResource
             'id' => $visit->client->id,
             'name' => $visit->client->name,
             'address' => $visit->client->address,
+            'whatsapp' => $visit->client->whatsapp,
         ];
-
-        if ($owner) {
-            $client['whatsapp'] = $visit->client->whatsapp;
-        }
 
         $row = [
             'id' => $visit->id,
@@ -182,10 +182,13 @@ class VisitResource
             'status' => $visit->status->value,
             'description' => $visit->description,
             'partner_earning_pence' => $visit->partner_earning_pence,
-            'lat' => (float) $visit->lat,
-            'lng' => (float) $visit->lng,
+            'lat' => $visit->lat === null ? null : (float) $visit->lat,
+            'lng' => $visit->lng === null ? null : (float) $visit->lng,
             'check_in_at' => $visit->check_in_at?->timezone($timezone)->toIso8601String(),
             'photo_count' => $visit->photos->count(),
+            'price_pence' => $visit->price_pence,
+            'payment_method' => $visit->payment_method,
+            'payment_status' => $visit->payment_status,
             'goals' => $visit->goals->map(fn (VisitGoal $goal): array => [
                 'id' => $goal->id,
                 'text' => $goal->text,
@@ -198,7 +201,6 @@ class VisitResource
                 'id' => $visit->assignee->id,
                 'name' => $visit->assignee->name,
             ];
-            $row['price_pence'] = $visit->price_pence;
             $row['rate'] = $visit->rate;
             $row['invoiced'] = $visit->invoiceLine !== null;
             $row['photos'] = $visit->photos->map(fn (VisitPhoto $photo): array => [

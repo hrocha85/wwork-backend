@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Booking\AnswerQuote;
 use App\Actions\Booking\BookSlot;
 use App\Actions\Booking\DecideBookingRequest;
 use App\Actions\Booking\ListBookingRequests;
 use App\Actions\Booking\ListOpenSlots;
+use App\Actions\Booking\OpenQuote;
+use App\Actions\Booking\ReplyToQuote;
 use App\Actions\Booking\SaveBooking;
 use App\Actions\Booking\ShowBooking;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BookSlotRequest;
 use App\Http\Requests\Api\V1\DecideBookingRequestRequest;
+use App\Http\Requests\Api\V1\OpenQuoteRequest;
+use App\Http\Requests\Api\V1\ReplyToQuoteRequest;
 use App\Http\Requests\Api\V1\SaveBookingRequest;
 use App\Models\Agency;
+use App\Models\BookingRequest;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use Illuminate\Http\JsonResponse;
@@ -41,6 +47,33 @@ class BookingController extends Controller
     public function decide(int $id, DecideBookingRequestRequest $request, DecideBookingRequest $decide): JsonResponse
     {
         return response()->json($decide($id, (string) $request->validated('status')));
+    }
+
+    public function reply(int $id, ReplyToQuoteRequest $request, ReplyToQuote $reply): JsonResponse
+    {
+        return response()->json($reply($id, $request->validated()));
+    }
+
+    public function publicQuote(string $token, OpenQuoteRequest $request, OpenQuote $open): JsonResponse
+    {
+        return response()->json($open($token, $request->validated(), $request->file('photo')), 201);
+    }
+
+    public function publicQuoteShow(string $token, string $publicToken): JsonResponse
+    {
+        return response()->json(OpenQuote::present($this->quote($token, $publicToken)));
+    }
+
+    public function publicQuoteAnswer(string $token, string $publicToken, AnswerQuote $answer): JsonResponse
+    {
+        $accept = request()->boolean('accept');
+
+        return response()->json($answer($token, $publicToken, $accept));
+    }
+
+    public function publicQuotePhoto(string $token, string $publicToken): StreamedResponse
+    {
+        return Storage::disk('local')->response(OpenQuote::photo($this->quote($token, $publicToken)));
     }
 
     public function publicShow(Request $request, string $token, ListOpenSlots $slots): JsonResponse
@@ -76,6 +109,21 @@ class BookingController extends Controller
         }
 
         return Storage::disk('local')->response($agency->logo_path);
+    }
+
+    private function quote(string $token, string $publicToken): BookingRequest
+    {
+        $agency = Agency::query()->where('booking_token', $token)->first();
+        $request = $agency === null ? null : BookingRequest::query()
+            ->where('agency_id', $agency->id)
+            ->where('public_token', $publicToken)
+            ->where('kind', 'quote')
+            ->first();
+        if ($request === null) {
+            throw new ApiException(ErrorCodes::BOOKING_NOT_FOUND, 404);
+        }
+
+        return $request;
     }
 
     private function agency(string $token): Agency

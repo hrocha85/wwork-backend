@@ -173,6 +173,74 @@ class ClientsApiTest extends TestCase
             ->assertExactJson(['error' => 'client.has_invoices']);
     }
 
+    public function test_sheet_preview_rejects_a_bad_row_and_commit_saves_the_good_one(): void
+    {
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $rows = [
+            ['name' => 'Casa Nova', 'whatsapp' => '+447700900777', 'address' => 'Rua Pará 18', 'email' => ''],
+            ['name' => 'A', 'whatsapp' => '', 'address' => '', 'email' => 'nao-e-email'],
+        ];
+
+        $this->postJson('/api/v1/clients/import', ['commit' => false, 'rows' => $rows])->assertOk()
+            ->assertJsonPath('counts.ok', 1)
+            ->assertJsonPath('counts.invalid', 1)
+            ->assertJsonPath('rows.0.needs_pin', true);
+
+        $this->assertFalse(Client::query()->where('whatsapp', '+447700900777')->exists());
+
+        $this->postJson('/api/v1/clients/import', ['commit' => true, 'rows' => $rows])->assertOk();
+        $this->assertTrue(Client::query()->where('whatsapp', '+447700900777')->whereNull('lat')->exists());
+    }
+
+    public function test_sheet_import_keeps_a_contact_that_still_needs_an_address(): void
+    {
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $rows = [
+            ['name' => 'Contato Sem Rua', 'whatsapp' => '+447700900888', 'address' => '', 'email' => ''],
+        ];
+
+        $this->postJson('/api/v1/clients/import', ['commit' => true, 'rows' => $rows])->assertOk()
+            ->assertJsonPath('counts.ok', 1)
+            ->assertJsonPath('rows.0.needs_address', true);
+
+        $this->assertTrue(Client::query()->where('whatsapp', '+447700900888')->where('address', '')->exists());
+    }
+
+    public function test_calendar_import_creates_a_visit_only_for_a_known_client(): void
+    {
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+        Client::query()->create([
+            'agency_id' => $owner->membership->agency_id,
+            'created_by' => $owner->id,
+            'name' => 'Ana Costa',
+            'whatsapp' => '+447700900123',
+            'address' => '10 Downing Street',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ]);
+
+        $ics = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Ana Costa\r\nDTSTART:20261001T090000\r\nLOCATION:10 Downing Street\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nSUMMARY:Desconhecido\r\nDTSTART:20261002T090000\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+
+        $this->postJson('/api/v1/clients/import/calendar', ['commit' => true, 'ics' => $ics])->assertOk()
+            ->assertJsonPath('counts.ok', 1)
+            ->assertJsonPath('counts.invalid', 1);
+
+        $this->assertTrue(Visit::query()->whereDate('service_date', '2026-10-01')->where('price_pence', 0)->exists());
+    }
+
     private function foreignClient(): Client
     {
         $agency = Agency::query()->create([

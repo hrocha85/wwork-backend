@@ -17,9 +17,14 @@ class Client extends Model
         'created_by',
         'name',
         'whatsapp',
+        'email',
+        'user_id',
+        'avatar_path',
+        'join_token',
         'address',
         'lat',
         'lng',
+        'note',
         'onesignal_player_id',
         'agenda_token',
         'sync_uuid',
@@ -44,6 +49,11 @@ class Client extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function visits(): HasMany

@@ -4,7 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreClientRequest extends FormRequest
+class OpenQuoteRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,10 +19,9 @@ class StoreClientRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'min:2', 'max:80'],
             'whatsapp' => ['required', 'string', 'max:32'],
-            'email' => ['nullable', 'email', 'max:255'],
             'address' => ['required', 'string', 'max:255'],
-            'lat' => ['nullable', 'numeric', 'between:-90,90'],
-            'lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'description' => ['required', 'string', 'min:2', 'max:2000'],
+            'photo' => ['nullable', 'image', 'max:5120'],
         ];
     }
 }

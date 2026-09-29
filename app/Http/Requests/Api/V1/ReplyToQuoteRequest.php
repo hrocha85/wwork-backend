@@ -4,7 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class LoginRequest extends FormRequest
+class ReplyToQuoteRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,9 +17,10 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required_without:login', 'nullable', 'email'],
-            'login' => ['required_without:email', 'nullable', 'string', 'max:80'],
-            'password' => ['required', 'string'],
+            'price_pence' => ['required', 'integer', 'min:0'],
+            'note' => ['required', 'string', 'min:2', 'max:500'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'time' => ['required', 'date_format:H:i'],
         ];
     }
 }

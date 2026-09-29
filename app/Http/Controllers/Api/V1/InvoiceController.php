@@ -14,6 +14,7 @@ use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\InvoiceShareToken;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
@@ -62,15 +63,16 @@ class InvoiceController extends Controller
         return response()->json($share($this->invoice($invoice)));
     }
 
-    public function paid(int $invoice, MarkInvoicePaid $mark): JsonResponse
+    public function paid(int $invoice, Request $request, MarkInvoicePaid $mark): JsonResponse
     {
-        $saved = $mark($this->invoice($invoice));
+        $saved = $mark($this->invoice($invoice), $request->input('paid_on'), $request->input('note'));
         $saved->loadMissing('agency');
 
         return response()->json([
             'id' => $saved->id,
             'status' => $saved->status->value,
             'paid_at' => $saved->paid_at?->timezone($saved->agency->timezone)->toIso8601String(),
+            'paid_note' => $saved->paid_note,
         ]);
     }
 

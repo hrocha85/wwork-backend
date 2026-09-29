@@ -18,8 +18,11 @@ class StoreInvoiceRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'integer'],
-            'visit_ids' => ['present', 'array'],
+            'visit_ids' => ['sometimes', 'array'],
             'visit_ids.*' => ['integer'],
+            'lines' => ['sometimes', 'array'],
+            'lines.*.visit_id' => ['required', 'integer'],
+            'lines.*.price_pence' => ['required', 'integer', 'min:1'],
         ];
     }
 }
