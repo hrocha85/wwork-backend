@@ -4,11 +4,13 @@ namespace App\Actions\Team;
 
 use App\Enums\Locale;
 use App\Enums\MembershipRole;
+use App\Mail\InviteAcceptedMail;
 use App\Models\Invite;
 use App\Models\Membership;
 use App\Models\User;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 use Illuminate\Support\Facades\Auth;
 
@@ -70,6 +72,8 @@ class AcceptInvite
         $invite->forceFill(['accepted_at' => now()])->save();
 
         RecordActivity::add($invite->agency_id, $user->id, 'team.invite_accepted');
+
+        app(MailNotifier::class)->toOwner('team.invite_accepted', $invite->agency, new InviteAcceptedMail($user->name, $user->email), $user->id);
 
         Auth::guard('web')->login($user);
         request()->session()->regenerate();

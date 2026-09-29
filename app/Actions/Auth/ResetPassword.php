@@ -2,9 +2,11 @@
 
 namespace App\Actions\Auth;
 
+use App\Mail\PasswordChangedMail;
 use App\Models\User;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -50,5 +52,7 @@ class ResetPassword
 
         $user->loadMissing('membership');
         RecordActivity::add($user->membership?->agency_id, $user->id, 'auth.password_reset');
+
+        app(MailNotifier::class)->toUser('auth.password_changed', $user, new PasswordChangedMail($user->name), $user->membership?->agency_id, $user->id);
     }
 }

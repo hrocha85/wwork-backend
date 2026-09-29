@@ -4,10 +4,12 @@ namespace App\Actions\Booking;
 
 use App\Enums\BookingRequestStatus;
 use App\Enums\SubscriptionStatus;
+use App\Mail\BookingRequestedMail;
 use App\Models\Agency;
 use App\Models\BookingRequest;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 use Illuminate\Support\Facades\DB;
 
@@ -55,6 +57,8 @@ class BookSlot
             ]);
 
             RecordActivity::add($agency->id, $owner->user_id, 'booking.requested');
+
+            app(MailNotifier::class)->toOwner('booking.requested', $agency, new BookingRequestedMail($request));
 
             return ['ok' => true, 'request_id' => $request->id];
         });

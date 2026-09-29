@@ -159,10 +159,13 @@ class FilamentMoneyTest extends TestCase
             ->firstOrFail();
         $this->assertSame($price->amount_minor, $owner->membership->agency->subscription->amount_minor);
 
-        Mail::assertQueued(OwnerWelcomeMail::class, function (OwnerWelcomeMail $mail): bool {
+        Mail::assertSent(OwnerWelcomeMail::class, function (OwnerWelcomeMail $mail): bool {
+            $html = $mail->render();
+
             return $mail->hasTo('offline@wwork.test')
                 && $mail->temporaryPassword === 'temp-pass-1'
-                && str_contains($mail->appUrl, '/login');
+                && str_contains($html, 'temp-pass-1')
+                && str_contains($html, config('wwork.frontend_url').'/login');
         });
 
         try {

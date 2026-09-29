@@ -4,11 +4,13 @@ namespace App\Actions\Visits;
 
 use App\Enums\MembershipRole;
 use App\Enums\VisitStatus;
+use App\Mail\VisitAnsweredMail;
 use App\Models\Membership;
 use App\Models\Visit;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 
 class DeclineVisit
@@ -50,6 +52,8 @@ class DeclineVisit
         $visit->save();
 
         RecordActivity::add($visit->agency_id, $actor->id, 'visit.declined');
+
+        app(MailNotifier::class)->toOwner('visit.declined', $membership->agency, new VisitAnsweredMail($visit, $actor->name, false), $actor->id);
 
         return $visit;
     }

@@ -1,6 +1,8 @@
 # Plano: e-mail SMTP no WWork
 
-Documento para validar antes de implementar. Nada deste plano está em código ainda, além do que a seção "O que já existe" descreve.
+> **Status:** fases 1 e 2 implementadas, com envio síncrono em vez de fila, porque a hospedagem não mantém worker. A fase 3 (e-mail do cliente final) segue pendente de decisão. O estado atual e o passo a passo de teste estão em `plans/email-notifications.md`.
+
+Documento original de planejamento, mantido como histórico.
 
 O desenho segue o Samaúma: um ponto único de envio, fila, falha que não desfaz a ação, e um e-mail por evento (sem reenvio se o mesmo fato chegar de novo).
 

@@ -5,6 +5,7 @@ namespace App\Actions\Visits;
 use App\Actions\Agenda\AssertOwnerAvailable;
 use App\Enums\MembershipRole;
 use App\Enums\VisitStatus;
+use App\Mail\VisitOfferedMail;
 use App\Models\Client;
 use App\Models\Membership;
 use App\Models\Visit;
@@ -13,6 +14,7 @@ use App\Policies\VisitPolicy;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 
 class CreateVisit
@@ -102,6 +104,11 @@ class CreateVisit
         }
 
         RecordActivity::add($membership->agency_id, $actor->id, 'visit.created');
+
+        if ($offered) {
+            $assignee->loadMissing('user');
+            app(MailNotifier::class)->toUser('visit.offered', $assignee->user, new VisitOfferedMail($visit), $membership->agency_id, $actor->id);
+        }
 
         return $visit->fresh(['assignee']);
     }
