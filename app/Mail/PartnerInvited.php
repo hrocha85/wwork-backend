@@ -13,22 +13,30 @@ class PartnerInvited extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Invite $invite) {}
+    public function __construct(
+        public Invite $invite,
+        public string $url,
+    ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'WWork invite');
+        $this->invite->loadMissing('agency');
+
+        return new Envelope(subject: __('mail.invite.subject', ['agency' => $this->invite->agency->name]));
     }
 
     public function content(): Content
     {
-        $this->invite->loadMissing('agency');
+        $this->invite->loadMissing(['agency', 'inviter']);
 
         return new Content(
-            text: 'mail.partner-invite',
+            view: 'mail.partner-invite',
+            text: 'mail.partner-invite-text',
             with: [
                 'agency' => $this->invite->agency->name,
-                'url' => rtrim((string) config('wwork.frontend_url'), '/').'/invites/'.$this->invite->token,
+                'inviter' => $this->invite->inviter?->name,
+                'url' => $this->url,
+                'days' => Invite::TTL_DAYS,
             ],
         );
     }

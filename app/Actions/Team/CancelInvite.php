@@ -9,14 +9,14 @@ use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
 
-class ResendInvite
+class CancelInvite
 {
-    public function __invoke(Invite $invite): Invite
+    public function __invoke(Invite $invite): void
     {
         $actor = AgencyContext::user();
         $membership = AgencyContext::membership();
 
-        if (! app(TeamPolicy::class)->resend($actor) || $invite->agency_id !== $membership->agency_id) {
+        if (! app(TeamPolicy::class)->cancel($actor) || $invite->agency_id !== $membership->agency_id) {
             throw new ApiException(ErrorCodes::TEAM_NOT_OWNER, 403);
         }
 
@@ -28,16 +28,8 @@ class ResendInvite
             throw new ApiException(ErrorCodes::INVITE_CANCELLED, 409);
         }
 
-        $plain = $invite->rotateToken();
-        $invite->forceFill([
-            'expires_at' => now()->addDays(Invite::TTL_DAYS),
-            'sent_at' => now(),
-        ])->save();
+        $invite->forceFill(['cancelled_at' => now()])->save();
 
-        app(SendInviteMail::class)($invite, $plain, $actor);
-
-        RecordActivity::add($invite->agency_id, $actor->id, 'team.invite_resent');
-
-        return $invite->fresh();
+        RecordActivity::add($invite->agency_id, $actor->id, 'team.invite_cancelled');
     }
 }
