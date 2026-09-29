@@ -38,6 +38,9 @@ class DecideBookingRequest
             }
 
             if ($next === BookingRequestStatus::Approved) {
+                if ($request->kind === 'quote') {
+                    throw new ApiException(ErrorCodes::BOOKING_NOT_READY, 422);
+                }
                 $open = app(ListOpenSlots::class)->free(
                     $agency,
                     $request->booking_service_id,
@@ -48,6 +51,7 @@ class DecideBookingRequest
                 if (! $open) {
                     throw new ApiException(ErrorCodes::BOOKING_TAKEN, 409);
                 }
+                app(ScheduleAcceptedRequest::class)($request);
             }
 
             $request->status = $next;

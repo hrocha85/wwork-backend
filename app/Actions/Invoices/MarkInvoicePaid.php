@@ -12,7 +12,7 @@ use App\Support\RecordActivity;
 
 class MarkInvoicePaid
 {
-    public function __invoke(Invoice $invoice): Invoice
+    public function __invoke(Invoice $invoice, ?string $paidOn = null, ?string $note = null): Invoice
     {
         $actor = AgencyContext::user();
 
@@ -20,8 +20,12 @@ class MarkInvoicePaid
             throw new ApiException(ErrorCodes::INVOICE_FORBIDDEN, 403);
         }
 
+        $invoice->loadMissing('agency');
         $invoice->status = InvoiceStatus::Paid;
-        $invoice->paid_at = now();
+        $invoice->paid_at = filled($paidOn)
+            ? \Illuminate\Support\Carbon::parse($paidOn, $invoice->agency->timezone)->startOfDay()
+            : now();
+        $invoice->paid_note = filled($note) ? $note : null;
         $invoice->save();
 
         RecordActivity::add($invoice->agency_id, $actor->id, 'invoice.paid');

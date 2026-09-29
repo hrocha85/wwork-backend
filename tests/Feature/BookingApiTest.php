@@ -162,6 +162,61 @@ class BookingApiTest extends TestCase
             ->assertExactJson(['error' => 'booking.not_found']);
     }
 
+    public function test_approving_a_slot_creates_the_client_and_the_visit(): void
+    {
+        $this->login('owner@wwork.test');
+        $saved = $this->putJson('/api/v1/booking', $this->payload())->assertOk();
+        $token = basename((string) $saved->json('url'));
+        $serviceId = $saved->json('services.0.id');
+
+        $booked = $this->postJson('/api/v1/book/'.$token, [
+            'service_id' => $serviceId,
+            'date' => '2026-09-28',
+            'time' => '09:00',
+            'name' => 'Ana Costa',
+            'whatsapp' => '+447700900999',
+        ])->assertCreated();
+
+        $id = $this->getJson('/api/v1/booking')->json('requests.0.id');
+        $this->postJson('/api/v1/booking/requests/'.$id, ['status' => 'approved'])->assertOk()
+            ->assertJsonPath('status', 'approved');
+
+        $this->assertNotNull($booked->json('request_id'));
+        $this->assertTrue(Client::query()->where('whatsapp', '+447700900999')->exists());
+        $this->assertTrue(Visit::query()->where('price_pence', 8000)->whereDate('service_date', '2026-09-28')->exists());
+    }
+
+    public function test_a_quote_is_answered_and_accepted_into_a_visit(): void
+    {
+        $this->login('owner@wwork.test');
+        $saved = $this->putJson('/api/v1/booking', $this->payload())->assertOk();
+        $token = basename((string) $saved->json('url'));
+
+        $opened = $this->postJson('/api/v1/book/'.$token.'/quotes', [
+            'name' => 'Neide',
+            'whatsapp' => '+447700900998',
+            'address' => 'Av pinheiro machado 535',
+            'description' => 'A torneira não fecha.',
+        ])->assertCreated();
+        $public = $opened->json('public_token');
+
+        $id = $this->getJson('/api/v1/booking')->json('requests.0.id');
+        $this->postJson('/api/v1/booking/requests/'.$id.'/reply', [
+            'price_pence' => 12000,
+            'note' => 'Troco o reparo da torneira.',
+            'date' => '2026-09-29',
+            'time' => '10:00',
+        ])->assertOk()->assertJsonPath('status', 'quoted');
+
+        $this->getJson('/api/v1/book/'.$token.'/quotes/'.$public)->assertOk()
+            ->assertJsonPath('quote_pence', 12000);
+
+        $this->postJson('/api/v1/book/'.$token.'/quotes/'.$public, ['accept' => true])->assertOk()
+            ->assertJsonPath('status', 'approved');
+
+        $this->assertTrue(Visit::query()->where('price_pence', 12000)->whereDate('service_date', '2026-09-29')->exists());
+    }
+
     /**
      * @return array<string, mixed>
      */

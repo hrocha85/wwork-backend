@@ -171,4 +171,6 @@ final class ErrorCodes
     public const BOOKING_TAKEN = 'booking.taken';
 
     public const BOOKING_INVALID_RANGE = 'booking.invalid_range';
+
+    public const BOOKING_NOT_READY = 'booking.not_ready';
 }

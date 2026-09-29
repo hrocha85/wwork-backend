@@ -23,8 +23,9 @@ class ClientResource
             'name' => $client->name,
             'whatsapp' => $client->whatsapp,
             'address' => $client->address,
-            'lat' => (float) $client->lat,
-            'lng' => (float) $client->lng,
+            'note' => $client->note,
+            'lat' => $client->lat === null ? null : (float) $client->lat,
+            'lng' => $client->lng === null ? null : (float) $client->lng,
             'created_by' => $client->created_by,
             'sync_uuid' => $client->sync_uuid,
         ];
@@ -83,8 +84,9 @@ class ClientResource
             'name' => $client->name,
             'whatsapp' => $client->whatsapp,
             'address' => $client->address,
-            'lat' => (float) $client->lat,
-            'lng' => (float) $client->lng,
+            'note' => $client->note,
+            'lat' => $client->lat === null ? null : (float) $client->lat,
+            'lng' => $client->lng === null ? null : (float) $client->lng,
             'visits' => $client->visits
                 ->sortBy(fn (Visit $visit): string => $visit->service_date->toDateString().self::clock($visit))
                 ->map(fn (Visit $visit): array => [
@@ -114,8 +116,9 @@ class ClientResource
             'id' => $client->id,
             'name' => $client->name,
             'address' => $client->address,
-            'lat' => (float) $client->lat,
-            'lng' => (float) $client->lng,
+            'note' => $client->note,
+            'lat' => $client->lat === null ? null : (float) $client->lat,
+            'lng' => $client->lng === null ? null : (float) $client->lng,
             'next_visit' => $next === null ? null : [
                 'id' => $next->id,
                 'date' => $next->service_date->toDateString(),

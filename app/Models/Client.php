@@ -24,6 +24,7 @@ class Client extends Model
         'address',
         'lat',
         'lng',
+        'note',
         'onesignal_player_id',
         'agenda_token',
         'sync_uuid',

@@ -85,6 +85,11 @@ class Visit extends Model
         return $this->hasOne(Payout::class);
     }
 
+    public function invoiceLines(): HasMany
+    {
+        return $this->hasMany(InvoiceLine::class);
+    }
+
     public function invoiceLine(): HasOne
     {
         return $this->hasOne(InvoiceLine::class);

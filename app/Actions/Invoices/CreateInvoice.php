@@ -32,8 +32,18 @@ class CreateInvoice
         }
 
         $ids = array_values(array_unique(array_map('intval', $input['visit_ids'] ?? [])));
+        $lines = is_array($input['lines'] ?? null) ? $input['lines'] : [];
+        $charges = [];
+        foreach ($lines as $line) {
+            $charges[(int) $line['visit_id']] = (int) $line['price_pence'];
+        }
+        foreach ($ids as $id) {
+            if (! array_key_exists($id, $charges)) {
+                $charges[$id] = null;
+            }
+        }
 
-        if ($ids === []) {
+        if ($charges === []) {
             throw new ApiException(ErrorCodes::INVOICE_EMPTY, 422);
         }
 
@@ -43,13 +53,14 @@ class CreateInvoice
             throw new ApiException(ErrorCodes::CLIENT_NOT_FOUND, 404);
         }
 
-        $invoice = DB::transaction(function () use ($actor, $membership, $client, $ids, $fromCheckout): Invoice {
-            $visits = Visit::query()->whereIn('id', $ids)->lockForUpdate()->get();
+        $invoice = DB::transaction(function () use ($actor, $membership, $client, $charges, $fromCheckout): Invoice {
+            $visits = Visit::query()->whereIn('id', array_keys($charges))->lockForUpdate()->get();
 
-            if ($visits->count() !== count($ids)) {
+            if ($visits->count() !== count($charges)) {
                 throw new ApiException(ErrorCodes::INVOICE_CLIENT_MISMATCH, 422);
             }
 
+            $amounts = [];
             foreach ($visits as $visit) {
                 if ($visit->agency_id !== $membership->agency_id || $visit->client_id !== $client->id) {
                     throw new ApiException(ErrorCodes::INVOICE_CLIENT_MISMATCH, 422);
@@ -60,13 +71,17 @@ class CreateInvoice
                 if ($fromCheckout && $visit->assignee_id !== $actor->id) {
                     throw new ApiException(ErrorCodes::INVOICE_FORBIDDEN, 403);
                 }
-                if ($visit->invoiceLine()->exists()) {
+                $already = (int) $visit->invoiceLines()->sum('price_pence');
+                $remaining = (int) $visit->price_pence - $already;
+                $amount = $charges[$visit->id] ?? $remaining;
+                if ($amount < 1 || $amount > $remaining) {
                     throw new ApiException(ErrorCodes::INVOICE_VISIT_ALREADY_INVOICED, 422);
                 }
+                $amounts[$visit->id] = $amount;
             }
 
             $number = ((int) Invoice::query()->where('agency_id', $membership->agency_id)->max('number')) + 1;
-            $total = (int) $visits->sum('price_pence');
+            $total = (int) array_sum($amounts);
 
             $invoice = Invoice::query()->create([
                 'agency_id' => $membership->agency_id,
@@ -84,7 +99,7 @@ class CreateInvoice
                     'visit_id' => $visit->id,
                     'service_date' => $visit->service_date->toDateString(),
                     'description' => (string) $visit->description,
-                    'price_pence' => $visit->price_pence,
+                    'price_pence' => $amounts[$visit->id],
                 ]);
             }
 

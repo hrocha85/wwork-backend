@@ -35,10 +35,11 @@ class InvoiceResource
 
         $visits = $client->visits()
             ->where('status', VisitStatus::Done)
-            ->whereDoesntHave('invoiceLine')
+            ->withSum('invoiceLines as invoiced_pence', 'price_pence')
             ->orderBy('service_date')
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->filter(fn ($visit): bool => (int) $visit->price_pence - (int) $visit->invoiced_pence > 0);
 
         return [
             'client' => [
@@ -50,7 +51,8 @@ class InvoiceResource
                 'id' => $visit->id,
                 'date' => $visit->service_date->toDateString(),
                 'description' => $visit->description,
-                'price_pence' => $visit->price_pence,
+                'price_pence' => (int) $visit->price_pence - (int) $visit->invoiced_pence,
+                'full_pence' => (int) $visit->price_pence,
             ])->values()->all(),
         ];
     }
@@ -124,6 +126,7 @@ class InvoiceResource
             'locale' => $invoice->locale->value,
             'sent_at' => $invoice->sent_at?->timezone($timezone)->toIso8601String(),
             'paid_at' => $invoice->paid_at?->timezone($timezone)->toIso8601String(),
+            'paid_note' => $invoice->paid_note,
             'lines' => $invoice->lines->map(fn (InvoiceLine $line): array => [
                 'id' => $line->id,
                 'visit_id' => $line->visit_id,
@@ -151,6 +154,7 @@ class InvoiceResource
             'status' => $invoice->status->value,
             'sent_at' => $invoice->sent_at?->timezone($timezone)->toIso8601String(),
             'paid_at' => $invoice->paid_at?->timezone($timezone)->toIso8601String(),
+            'paid_note' => $invoice->paid_note,
         ];
     }
 

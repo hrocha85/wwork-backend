@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BookingRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class BookingRequest extends Model
 {
@@ -16,7 +17,28 @@ class BookingRequest extends Model
         'requested_date',
         'requested_time',
         'status',
+        'kind',
+        'address',
+        'description',
+        'photo_path',
+        'quote_pence',
+        'quote_note',
+        'proposed_date',
+        'proposed_time',
+        'public_token',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (BookingRequest $request): void {
+            if (! filled($request->public_token)) {
+                $request->public_token = Str::random(40);
+            }
+            if (! filled($request->kind)) {
+                $request->kind = 'slot';
+            }
+        });
+    }
 
     /**
      * @return array<string, string>
@@ -25,6 +47,8 @@ class BookingRequest extends Model
     {
         return [
             'requested_date' => 'date',
+            'proposed_date' => 'date',
+            'quote_pence' => 'integer',
             'status' => BookingRequestStatus::class,
         ];
     }

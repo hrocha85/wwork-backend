@@ -24,9 +24,13 @@ Route::post('/forgot-password', [PasswordController::class, 'forgot']);
 Route::post('/reset-password', [PasswordController::class, 'reset']);
 Route::post('/invites/{token}/accept', [TeamController::class, 'accept']);
 Route::get('/invoices/share/{token}', [InvoiceController::class, 'sharedPdf']);
-Route::get('/agenda/{token}', [AgendaController::class, 'show'])->where('token', '(?!blocks$)[A-Za-z0-9]+');
+Route::get('/agenda/{token}', [AgendaController::class, 'show'])->where('token', '(?!blocks$)[A-Za-z0-9-]+');
 Route::post('/agenda/{token}/notify', [AgendaController::class, 'notify']);
 Route::get('/book/{token}/logo', [BookingController::class, 'publicLogo']);
+Route::post('/book/{token}/quotes', [BookingController::class, 'publicQuote']);
+Route::get('/book/{token}/quotes/{publicToken}/photo', [BookingController::class, 'publicQuotePhoto']);
+Route::post('/book/{token}/quotes/{publicToken}', [BookingController::class, 'publicQuoteAnswer']);
+Route::get('/book/{token}/quotes/{publicToken}', [BookingController::class, 'publicQuoteShow']);
 Route::get('/book/{token}', [BookingController::class, 'publicShow']);
 Route::post('/book/{token}', [BookingController::class, 'publicStore']);
 Route::get('/search', [ClientPortalController::class, 'search']);
@@ -69,7 +73,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/clients', [ClientController::class, 'index']);
         Route::post('/clients', [ClientController::class, 'store']);
+        Route::post('/clients/import', [ClientController::class, 'import']);
+        Route::post('/clients/import/calendar', [ClientController::class, 'importCalendar']);
         Route::get('/clients/{client}', [ClientController::class, 'show']);
+        Route::patch('/clients/{client}', [ClientController::class, 'update']);
         Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
 
         Route::get('/visits.ics', [VisitController::class, 'ics']);
@@ -104,6 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/booking', [BookingController::class, 'show']);
         Route::put('/booking', [BookingController::class, 'update']);
         Route::get('/booking/requests', [BookingController::class, 'requests']);
+        Route::post('/booking/requests/{id}/reply', [BookingController::class, 'reply']);
         Route::post('/booking/requests/{id}', [BookingController::class, 'decide']);
 
         Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);

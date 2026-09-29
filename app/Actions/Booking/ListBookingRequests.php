@@ -49,10 +49,19 @@ class ListBookingRequests
             'id' => $request->id,
             'client_name' => $request->client_name,
             'client_phone' => $request->client_phone,
-            'date' => $request->requested_date->toDateString(),
-            'time' => substr((string) $request->requested_time, 0, 5),
+            'date' => $request->requested_date?->toDateString(),
+            'time' => $request->requested_time === null ? null : substr((string) $request->requested_time, 0, 5),
             'service_name' => $request->service?->name,
             'status' => $request->status->value,
+            'kind' => $request->kind ?? 'slot',
+            'address' => $request->address,
+            'description' => $request->description,
+            'quote_pence' => $request->quote_pence,
+            'quote_note' => $request->quote_note,
+            'proposed_date' => $request->proposed_date?->toDateString(),
+            'proposed_time' => $request->proposed_time === null ? null : substr((string) $request->proposed_time, 0, 5),
+            'public_token' => $request->public_token,
+            'has_photo' => filled($request->photo_path),
         ];
     }
 }

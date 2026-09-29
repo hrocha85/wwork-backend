@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Clients\CreateClient;
 use App\Actions\Clients\DeleteClient;
+use App\Actions\Clients\ImportClients;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ListClientsRequest;
 use App\Http\Requests\Api\V1\StoreClientRequest;
 use App\Http\Resources\Api\V1\ClientResource;
 use App\Models\Client;
+use App\Policies\ClientPolicy;
+use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class ClientController extends Controller
@@ -33,6 +37,37 @@ class ClientController extends Controller
     public function show(int $client): JsonResponse
     {
         return response()->json(ClientResource::show($this->client($client)));
+    }
+
+    public function update(int $client, Request $request): JsonResponse
+    {
+        $model = $this->client($client);
+        $actor = AgencyContext::user();
+        if (! app(ClientPolicy::class)->view($actor, $model)) {
+            throw new ApiException(ErrorCodes::CLIENT_FORBIDDEN, 403);
+        }
+        if ($request->exists('note')) {
+            $model->note = $request->string('note')->toString();
+        }
+        if ($request->filled('lat') && $request->filled('lng')) {
+            $model->lat = $request->input('lat');
+            $model->lng = $request->input('lng');
+        }
+        $model->save();
+
+        return response()->json(ClientResource::show($model));
+    }
+
+    public function import(Request $request, ImportClients $import): JsonResponse
+    {
+        $rows = $request->input('rows');
+
+        return response()->json($import->sheet(is_array($rows) ? $rows : [], $request->boolean('commit')));
+    }
+
+    public function importCalendar(Request $request, ImportClients $import): JsonResponse
+    {
+        return response()->json($import->calendar($request->string('ics')->toString(), $request->boolean('commit')));
     }
 
     public function destroy(int $client, DeleteClient $delete): Response
