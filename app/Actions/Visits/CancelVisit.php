@@ -2,7 +2,6 @@
 
 namespace App\Actions\Visits;
 
-use App\Enums\VisitStatus;
 use App\Models\SyncDeletion;
 use App\Models\Visit;
 use App\Policies\VisitPolicy;
@@ -21,15 +20,17 @@ class CancelVisit
             throw new ApiException(ErrorCodes::VISIT_FORBIDDEN, 403);
         }
 
-        if ($visit->status === VisitStatus::Done) {
-            throw new ApiException(ErrorCodes::VISIT_ALREADY_DONE, 409);
-        }
-
-        $visit->load('invoiceLine');
+        $visit->load(['invoiceLine', 'payout']);
 
         if ($visit->invoiceLine !== null) {
             throw new ApiException(ErrorCodes::VISIT_INVOICED, 409);
         }
+
+        if ($visit->payout?->paid === true) {
+            throw new ApiException(ErrorCodes::VISIT_PAID, 409);
+        }
+
+        $visit->payout?->delete();
 
         SyncDeletion::query()->create([
             'agency_id' => $visit->agency_id,

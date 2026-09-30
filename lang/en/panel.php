@@ -195,6 +195,7 @@ return [
     'discount' => [
         'two_months_free' => '12 for the price of 10',
         'twenty_percent' => '20% off',
+        'launch' => 'Launch offer',
     ],
     'attention' => [
         'heading' => 'Subscriptions that need you',

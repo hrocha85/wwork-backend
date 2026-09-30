@@ -1,17 +1,17 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AgencyController;
-use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
+use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\ClientPortalController;
-use App\Http\Controllers\Api\V1\PublicAgencyController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasswordController;
+use App\Http\Controllers\Api\V1\PublicAgencyController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\TeamController;
 use App\Http\Controllers\Api\V1\VisitController;
@@ -43,6 +43,7 @@ Route::get('/agency/{slug}/reviews', [PublicAgencyController::class, 'reviews'])
 Route::get('/agency/{slug}', [PublicAgencyController::class, 'show']);
 Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook']);
 Route::post('/setup-intent', [SubscriptionController::class, 'setup']);
+Route::get('/pricing', [SubscriptionController::class, 'pricing']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

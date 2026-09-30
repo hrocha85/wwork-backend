@@ -195,6 +195,7 @@ return [
     'discount' => [
         'two_months_free' => '12 w cenie 10',
         'twenty_percent' => '20% taniej',
+        'launch' => 'Oferta startowa',
     ],
     'attention' => [
         'heading' => 'Subskrypcje, które wymagają decyzji',

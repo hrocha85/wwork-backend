@@ -6,10 +6,8 @@ use App\Enums\AnnualDiscount;
 use App\Enums\BillingInterval;
 use App\Enums\PlanCode;
 use App\Enums\SubscriptionStatus;
-use App\Models\Subscription;
 use App\Services\SeatPlan;
 use App\Services\Stripe\StripeBilling;
-use App\Services\Stripe\StripeResult;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
@@ -59,15 +57,11 @@ class ChangeSubscription
             throw new ApiException(ErrorCodes::SUBSCRIPTION_PAST_DUE, 402);
         }
         $type = AnnualDiscount::tryFrom($discount);
-        if ($subscription === null || $type === null || $type === AnnualDiscount::None) {
+        if ($subscription === null || $type === null || $type === AnnualDiscount::None || $subscription->billing === BillingInterval::Annual) {
             throw new ApiException(ErrorCodes::SUBSCRIPTION_INVALID_PLAN, 422);
         }
 
-        $price = $this->seats->price($agency->country, $subscription->plan, BillingInterval::Annual, $type);
-        $this->switch($subscription, $price->stripe_price_id, $price->amount_minor);
-        $subscription->billing = BillingInterval::Annual;
-        $subscription->discount_type = $type;
-        $subscription->amount_minor = $price->amount_minor;
+        $result = $this->seats->applyTier($agency, $subscription, $subscription->plan, BillingInterval::Annual, $agency->memberships()->count());
         $subscription->save();
         RecordActivity::add($agency->id, null, 'subscription.annual');
 
@@ -75,6 +69,9 @@ class ChangeSubscription
             'plan' => $subscription->plan->value.'_annual',
             'amount' => $subscription->amount_minor,
             'status' => $subscription->status->value,
+            'discount_type' => $subscription->discount_type->value,
+            'offer_ends_at' => $subscription->offer_ends_at?->timezone($agency->timezone)->toIso8601String(),
+            'next_invoice_pence' => $result->nextInvoicePence,
         ];
     }
 
@@ -90,27 +87,24 @@ class ChangeSubscription
         if ($subscription === null || $next === null || $this->rank($next) <= $this->rank($subscription->plan)) {
             throw new ApiException(ErrorCodes::SUBSCRIPTION_INVALID_PLAN, 422);
         }
-
-        $discount = $interval === BillingInterval::Annual ? $subscription->discount_type : AnnualDiscount::None;
-        if ($discount === AnnualDiscount::None && $interval === BillingInterval::Annual) {
-            $discount = AnnualDiscount::TwoMonthsFree;
+        if ($subscription->billing === BillingInterval::Annual) {
+            $interval = BillingInterval::Annual;
         }
-        $price = $this->seats->price($agency->country, $next, $interval, $discount === AnnualDiscount::None ? AnnualDiscount::None : $discount);
-        $result = $this->switch($subscription, $price->stripe_price_id, $price->amount_minor);
-        $subscription->plan = $next;
-        $subscription->billing = $interval;
-        $subscription->amount_minor = $price->amount_minor;
-        $subscription->stripe_price_id = $price->stripe_price_id;
+
+        $used = $agency->memberships()->count();
+        $result = $this->seats->applyTier($agency, $subscription, $next, $interval, $used);
         $subscription->save();
         RecordActivity::add($agency->id, null, 'subscription.upgraded');
 
         return [
             'plan' => $next->value,
             'billing' => $interval->value,
-            'amount' => $price->amount_minor,
+            'amount' => $subscription->amount_minor,
             'status' => $subscription->status->value,
             'max_seats' => $next->maxSeats(),
-            'seats_used' => $agency->memberships()->count(),
+            'seats_used' => $used,
+            'discount_type' => $subscription->discount_type->value,
+            'offer_ends_at' => $subscription->offer_ends_at?->timezone($agency->timezone)->toIso8601String(),
             'proration_credit_pence' => $result->prorationCreditPence,
             'next_invoice_pence' => $result->nextInvoicePence,
         ];
@@ -132,22 +126,6 @@ class ChangeSubscription
             'card_last4' => '4242',
             'card_brand' => 'visa',
         ];
-    }
-
-    private function switch(Subscription $subscription, ?string $priceId, int $amount): StripeResult
-    {
-        if (! $subscription->stripe_id || ! $this->stripe->available()) {
-            return new StripeResult(
-                prorationCreditPence: 0,
-                nextInvoicePence: $amount,
-            );
-        }
-
-        try {
-            return $this->stripe->switchPrice($subscription->stripe_id, (string) $priceId, $amount);
-        } catch (\Throwable) {
-            throw new ApiException(ErrorCodes::SUBSCRIPTION_STRIPE_ERROR, 422);
-        }
     }
 
     private function rank(PlanCode $plan): int

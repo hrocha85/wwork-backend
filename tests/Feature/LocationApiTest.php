@@ -70,7 +70,7 @@ class LocationApiTest extends TestCase
         $this->postJson('/api/v1/logout')->assertNoContent();
     }
 
-    public function test_invited_point_is_listed_for_the_owner_and_hidden_after_two_minutes(): void
+    public function test_invited_point_stays_on_the_map_with_a_recent_status(): void
     {
         $invited = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
 
@@ -101,13 +101,17 @@ class LocationApiTest extends TestCase
         ])->assertNoContent();
 
         $fresh = $this->getJson('/api/v1/team/locations')->assertOk();
-        $ids = collect($fresh->json('locations'))->pluck('user_id')->all();
-        $this->assertContains($invited->id, $ids);
-        $this->assertTrue(collect($fresh->json('locations'))->firstWhere('user_id', $invited->id)['self'] === false);
+        $online = collect($fresh->json('locations'))->firstWhere('user_id', $invited->id);
+        $this->assertFalse($online['self']);
+        $this->assertSame('online', $online['status']);
 
         $invited->forceFill(['last_located_at' => now()->subMinutes(3)])->save();
 
         $stale = $this->getJson('/api/v1/team/locations')->assertOk();
-        $this->assertNotContains($invited->id, collect($stale->json('locations'))->pluck('user_id')->all());
+        $recent = collect($stale->json('locations'))->firstWhere('user_id', $invited->id);
+        $this->assertNotNull($recent);
+        $this->assertSame('recent', $recent['status']);
+        $this->assertEquals(51.512, $recent['lat']);
+        $this->assertEquals(-0.118, $recent['lng']);
     }
 }

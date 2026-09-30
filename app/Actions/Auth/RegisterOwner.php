@@ -18,6 +18,7 @@ use App\Services\Stripe\StripeBilling;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -55,19 +56,28 @@ class RegisterOwner
             throw new ApiException(ErrorCodes::REGISTER_PAYMENT_UNAVAILABLE, 503);
         }
 
+        $billing = BillingInterval::tryFrom((string) ($data['billing'] ?? BillingInterval::Monthly->value));
+        if ($billing === null) {
+            throw new ApiException(ErrorCodes::SUBSCRIPTION_INVALID_PLAN, 422);
+        }
+
         $paymentMethod = (string) ($data['payment_method'] ?? '');
-        $price = $this->seats->price('GB', PlanCode::Basic, BillingInterval::Monthly, AnnualDiscount::None);
+        $offer = $this->seats->offerFor($billing);
+        ['intro' => $price, 'full' => $full] = $this->seats->offerPrices('GB', PlanCode::Basic, $billing, $offer);
 
         try {
-            $charge = $this->stripe->subscribeBasic($paymentMethod, (string) ($price->stripe_price_id ?? PlanCode::Basic->value), [
-                'country' => 'GB',
-                'trade' => $trade->value,
-            ]);
+            $charge = $this->stripe->subscribeWithOffer(
+                $paymentMethod,
+                $this->seats->stripePrice($price),
+                $offer ? $this->seats->stripePrice($full) : null,
+                $billing,
+                ['country' => 'GB', 'trade' => $trade->value],
+            );
         } catch (\Throwable) {
             throw new ApiException(ErrorCodes::REGISTER_PAYMENT_FAILED, 422);
         }
 
-        $user = DB::transaction(function () use ($data, $locale, $trade, $price, $charge): User {
+        $user = DB::transaction(function () use ($data, $locale, $trade, $price, $charge, $billing, $offer): User {
             $agency = Agency::query()->create([
                 'name' => $data['agency_name'],
                 'timezone' => 'Europe/London',
@@ -101,10 +111,12 @@ class RegisterOwner
                 'seats' => 1,
                 'amount_minor' => $price->amount_minor,
                 'currency' => $price->currency,
-                'billing' => BillingInterval::Monthly,
-                'discount_type' => AnnualDiscount::None,
+                'billing' => $billing,
+                'discount_type' => $offer ? AnnualDiscount::Launch : AnnualDiscount::None,
+                'offer_ends_at' => $charge->offerEndsAt !== null ? Carbon::parse($charge->offerEndsAt) : null,
                 'stripe_id' => $charge->subscriptionId,
                 'stripe_price_id' => $price->stripe_price_id,
+                'stripe_schedule_id' => $charge->scheduleId,
                 'stripe_status' => 'active',
             ]);
 

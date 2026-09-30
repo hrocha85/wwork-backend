@@ -26,6 +26,7 @@ class RegisterRequest extends FormRequest
             'utm_source' => ['nullable', 'string', 'max:80'],
             'utm_campaign' => ['nullable', 'string', 'max:80'],
             'payment_method' => ['nullable', 'string'],
+            'billing' => ['nullable', 'string'],
             'terms_accepted' => ['nullable', 'boolean'],
         ];
     }

@@ -40,24 +40,18 @@ class AssignPlan
             throw new ApiException(ErrorCodes::PLAN_SEATS_EXCEEDED, 422);
         }
 
-        $subscription->plan = $plan;
         $subscription->seats = $people;
-        $subscription->amount_minor = $this->seats->amount($agency, $subscription, $people);
-        $price = $this->seats->price($agency->country, $plan, $subscription->billing, $subscription->discount_type);
-        $subscription->stripe_price_id = $price->stripe_price_id;
-        $subscription->currency = $price->currency;
-
-        if ($reason === 'pay' && $subscription->stripe_id && $this->stripe->available()) {
-            try {
-                $this->stripe->switchPrice(
-                    $subscription->stripe_id,
-                    (string) ($price->stripe_price_id ?? $plan->value),
-                    $subscription->amount_minor,
-                );
-            } catch (\Throwable) {
-                throw new ApiException(ErrorCodes::SUBSCRIPTION_STRIPE_ERROR, 422);
+        if ($reason === 'pay') {
+            $this->seats->applyTier($agency, $subscription, $plan, $subscription->billing, $people);
+            if ($subscription->stripe_id && $this->stripe->available()) {
+                $subscription->status = SubscriptionStatus::Active;
             }
-            $subscription->status = SubscriptionStatus::Active;
+        } else {
+            $subscription->plan = $plan;
+            $subscription->amount_minor = $this->seats->amount($agency, $subscription, $people);
+            $price = $this->seats->price($agency->country, $plan, $subscription->billing, $subscription->discount_type);
+            $subscription->stripe_price_id = $price->stripe_price_id;
+            $subscription->currency = $price->currency;
         }
 
         if ($reason === 'complimentary') {

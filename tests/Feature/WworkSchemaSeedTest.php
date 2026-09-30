@@ -29,6 +29,7 @@ class WworkSchemaSeedTest extends TestCase
 
     public function test_seed_creates_staff_prices_and_local_demo_without_houses(): void
     {
+        config(['services.stripe.secret' => null]);
         $this->seedDatabase();
 
         $founder = User::query()->where('email', 'founder@wwork.app')->first();
@@ -63,15 +64,29 @@ class WworkSchemaSeedTest extends TestCase
             ->first();
 
         $this->assertNotNull($basic);
-        $this->assertSame(4900, $basic->amount_minor);
+        $this->assertSame(4990, $basic->amount_minor);
         $this->assertSame('GBP', $basic->currency);
         $this->assertNull($basic->stripe_price_id);
-        $this->assertSame(9, PlanPrice::query()->count());
-        $this->assertSame(49000, $this->annual(PlanCode::Basic, AnnualDiscount::TwoMonthsFree));
-        $this->assertSame(47040, $this->annual(PlanCode::Basic, AnnualDiscount::TwentyPercent));
-        $this->assertSame(1000, PlanPrice::query()
+        $this->assertSame(18, PlanPrice::query()->count());
+        $this->assertSame(2990, (int) PlanPrice::query()
+            ->where('plan', PlanCode::Basic)
+            ->where('billing', BillingInterval::Monthly)
+            ->where('discount_type', AnnualDiscount::Launch)
+            ->value('amount_minor'));
+        $this->assertSame(23880, $this->annual(PlanCode::Basic, AnnualDiscount::Launch));
+        $this->assertSame(59880, $this->annual(PlanCode::Basic, AnnualDiscount::None));
+        $this->assertSame(38280, $this->annual(PlanCode::Pro, AnnualDiscount::Launch));
+        $this->assertSame(131880, $this->annual(PlanCode::Business, AnnualDiscount::None));
+        $this->assertSame(49900, $this->annual(PlanCode::Basic, AnnualDiscount::TwoMonthsFree));
+        $this->assertSame(990, PlanPrice::query()
             ->where('plan', PlanCode::Business)
             ->where('billing', BillingInterval::Monthly)
+            ->where('discount_type', AnnualDiscount::None)
+            ->value('extra_seat_minor'));
+        $this->assertSame(590, PlanPrice::query()
+            ->where('plan', PlanCode::Business)
+            ->where('billing', BillingInterval::Monthly)
+            ->where('discount_type', AnnualDiscount::Launch)
             ->value('extra_seat_minor'));
 
         $owner = User::query()->where('email', 'owner@wwork.test')->first();
@@ -116,7 +131,7 @@ class WworkSchemaSeedTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'founder@wwork.app']);
         $this->assertDatabaseMissing('users', ['email' => 'owner@wwork.test']);
         $this->assertSame(0, Agency::query()->count());
-        $this->assertSame(9, PlanPrice::query()->count());
+        $this->assertSame(18, PlanPrice::query()->count());
     }
 
     public function test_seed_demo_flag_creates_the_demo_agency_in_production(): void

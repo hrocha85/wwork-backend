@@ -195,6 +195,7 @@ return [
     'discount' => [
         'two_months_free' => '12 la preț de 10',
         'twenty_percent' => '20% reducere',
+        'launch' => 'Ofertă de lansare',
     ],
     'attention' => [
         'heading' => 'Abonamente care cer o decizie',

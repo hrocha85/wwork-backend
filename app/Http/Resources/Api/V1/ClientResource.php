@@ -83,6 +83,7 @@ class ClientResource
             'id' => $client->id,
             'name' => $client->name,
             'whatsapp' => $client->whatsapp,
+            'email' => $client->email,
             'address' => $client->address,
             'note' => $client->note,
             'lat' => $client->lat === null ? null : (float) $client->lat,
@@ -115,6 +116,7 @@ class ClientResource
         return [
             'id' => $client->id,
             'name' => $client->name,
+            'whatsapp' => $client->whatsapp,
             'address' => $client->address,
             'note' => $client->note,
             'lat' => $client->lat === null ? null : (float) $client->lat,

@@ -48,6 +48,9 @@ class AuthSessionResource
                 'status' => $subscription?->status?->value,
                 'seats' => $subscription?->seats,
                 'amount' => $subscription?->amount_minor,
+                'billing' => $subscription?->billing?->value,
+                'discount_type' => $subscription?->discount_type?->value,
+                'offer_ends_at' => self::iso($subscription?->offer_ends_at, $agency->timezone),
             ],
         ];
     }

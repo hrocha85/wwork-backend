@@ -195,6 +195,7 @@ return [
     'discount' => [
         'two_months_free' => '12 pelo preço de 10',
         'twenty_percent' => '20% de desconto',
+        'launch' => 'Oferta de lançamento',
     ],
     'attention' => [
         'heading' => 'Assinaturas que pedem decisão',

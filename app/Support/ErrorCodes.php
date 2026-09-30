@@ -62,6 +62,8 @@ final class ErrorCodes
 
     public const CLIENT_HAS_INVOICES = 'client.has_invoices';
 
+    public const CLIENT_INVALID = 'client.invalid';
+
     public const CLIENT_NOT_FOUND = 'client.not_found';
 
     public const CLIENT_JOIN_INVALID = 'client.join_invalid';
@@ -85,6 +87,8 @@ final class ErrorCodes
     public const VISIT_ALREADY_DONE = 'visit.already_done';
 
     public const VISIT_INVOICED = 'visit.invoiced';
+
+    public const VISIT_PAID = 'visit.paid';
 
     public const VISIT_NOT_OFFERED = 'visit.not_offered';
 

@@ -21,11 +21,14 @@ class Subscription extends Model
         'currency',
         'billing',
         'discount_type',
+        'offer_ends_at',
+        'offer_reminded_at',
         'cancel_at',
         'complimentary_until',
         'paid_offline_until',
         'stripe_id',
         'stripe_price_id',
+        'stripe_schedule_id',
         'stripe_status',
     ];
 
@@ -41,6 +44,8 @@ class Subscription extends Model
             'amount_minor' => 'integer',
             'billing' => BillingInterval::class,
             'discount_type' => AnnualDiscount::class,
+            'offer_ends_at' => 'datetime',
+            'offer_reminded_at' => 'datetime',
             'cancel_at' => 'datetime',
             'complimentary_until' => 'datetime',
             'paid_offline_until' => 'datetime',

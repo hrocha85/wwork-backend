@@ -57,7 +57,7 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('agency.country', 'GB')
             ->assertJsonPath('agency.invoice_region', 'GB')
             ->assertJsonPath('agency.subscription.plan', 'wwork_basic')
-            ->assertJsonPath('agency.subscription.amount', 4900)
+            ->assertJsonPath('agency.subscription.amount', 4990)
             ->assertJsonPath('team_count', 2)
             ->assertJsonPath('max_seats', 3);
 
@@ -78,6 +78,7 @@ class AuthApiTest extends TestCase
 
     public function test_register_refuses_without_stripe_and_keeps_domain_errors(): void
     {
+        config(['services.stripe.secret' => null]);
         $before = User::query()->count();
 
         $this->postJson('/api/v1/register', $this->registerBody(['terms_accepted' => false]))

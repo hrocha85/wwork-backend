@@ -100,6 +100,7 @@ class ClientsApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'clients')
             ->assertJsonPath('clients.0.name', 'Monday House')
+            ->assertJsonPath('clients.0.whatsapp', '+447911000001')
             ->assertJsonPath('clients.0.next_visit.date', '2026-09-28')
             ->assertJsonPath('clients.0.next_visit.time', '09:00')
             ->assertJsonPath('clients.0.next_visit.status', 'todo');
@@ -239,6 +240,43 @@ class ClientsApiTest extends TestCase
             ->assertJsonPath('counts.invalid', 1);
 
         $this->assertTrue(Visit::query()->whereDate('service_date', '2026-10-01')->where('price_pence', 0)->exists());
+    }
+
+    public function test_owner_updates_name_phone_and_email(): void
+    {
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $created = $this->postJson('/api/v1/clients', [
+            'name' => 'Ada House',
+            'whatsapp' => '+447700900123',
+            'address' => '1 Road',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertCreated();
+
+        $id = $created->json('id');
+
+        $this->patchJson('/api/v1/clients/'.$id, [
+            'name' => 'Ada Updated',
+            'whatsapp' => '+447700900124',
+            'email' => 'ada@example.test',
+            'address' => '2 Road',
+        ])->assertOk()
+            ->assertJsonPath('name', 'Ada Updated')
+            ->assertJsonPath('whatsapp', '+447700900124')
+            ->assertJsonPath('email', 'ada@example.test')
+            ->assertJsonPath('address', '2 Road');
+
+        $this->getJson('/api/v1/clients/'.$id)
+            ->assertOk()
+            ->assertJsonPath('email', 'ada@example.test');
+
+        $this->patchJson('/api/v1/clients/'.$id, ['name' => 'A'])
+            ->assertStatus(422)
+            ->assertExactJson(['error' => 'client.invalid']);
     }
 
     private function foreignClient(): Client

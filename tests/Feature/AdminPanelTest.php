@@ -227,7 +227,7 @@ class AdminPanelTest extends TestCase
         $this->get(SubscriptionResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Demo Cleaning')
-            ->assertSee('49.00 GBP')
+            ->assertSee('49.90 GBP')
             ->assertSee('Monthly')
             ->assertSee('2 / 3')
             ->assertDontSee('SECRET-HOUSE-10-DOWNING')
@@ -236,7 +236,7 @@ class AdminPanelTest extends TestCase
         $this->get(SubscriptionResource::getUrl('view', ['record' => $agency->subscription]))
             ->assertOk()
             ->assertSee('Nothing due')
-            ->assertSee('49.00 GBP')
+            ->assertSee('49.90 GBP')
             ->assertDontSee('SECRET-HOUSE-10-DOWNING');
     }
 
@@ -251,6 +251,6 @@ class AdminPanelTest extends TestCase
         $this->get('/dashboard')
             ->assertOk()
             ->assertDontSee('MRR at risk')
-            ->assertDontSee('49.00 GBP');
+            ->assertDontSee('49.90 GBP');
     }
 }

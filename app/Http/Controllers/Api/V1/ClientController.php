@@ -46,15 +46,45 @@ class ClientController extends Controller
         if (! app(ClientPolicy::class)->view($actor, $model)) {
             throw new ApiException(ErrorCodes::CLIENT_FORBIDDEN, 403);
         }
+        if ($request->exists('name')) {
+            $name = trim($request->string('name')->toString());
+            if (mb_strlen($name) < 2 || mb_strlen($name) > 80) {
+                throw new ApiException(ErrorCodes::CLIENT_INVALID, 422);
+            }
+            $model->name = $name;
+        }
+        if ($request->exists('whatsapp')) {
+            $phone = trim($request->string('whatsapp')->toString());
+            if ($phone === '' || mb_strlen($phone) > 32) {
+                throw new ApiException(ErrorCodes::CLIENT_INVALID, 422);
+            }
+            $model->whatsapp = $phone;
+        }
+        if ($request->exists('email')) {
+            $email = trim($request->string('email')->toString());
+            if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                throw new ApiException(ErrorCodes::CLIENT_INVALID, 422);
+            }
+            $model->email = $email === '' ? null : $email;
+        }
         if ($request->exists('note')) {
             $model->note = $request->string('note')->toString();
         }
         if ($request->exists('address')) {
-            $model->address = mb_substr(trim($request->string('address')->toString()), 0, 255);
+            $address = trim($request->string('address')->toString());
+            if (mb_strlen($address) > 255) {
+                throw new ApiException(ErrorCodes::CLIENT_INVALID, 422);
+            }
+            $model->address = $address;
         }
-        if ($request->filled('lat') && $request->filled('lng')) {
-            $model->lat = $request->input('lat');
-            $model->lng = $request->input('lng');
+        if ($request->exists('lat') && $request->exists('lng')) {
+            if ($request->filled('lat') && $request->filled('lng')) {
+                $model->lat = $request->input('lat');
+                $model->lng = $request->input('lng');
+            } else {
+                $model->lat = null;
+                $model->lng = null;
+            }
         }
         $model->save();
 
