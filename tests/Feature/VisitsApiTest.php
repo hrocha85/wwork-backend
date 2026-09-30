@@ -135,9 +135,9 @@ class VisitsApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'visits')
             ->assertJsonPath('visits.0.id', $visitId)
-            ->assertJsonMissingPath('visits.0.price_pence')
+            ->assertJsonPath('visits.0.price_pence', 10000)
             ->assertJsonMissingPath('visits.0.rate')
-            ->assertJsonMissingPath('visits.0.client.whatsapp')
+            ->assertJsonPath('visits.0.client.whatsapp', fn ($value) => is_string($value) && $value !== '')
             ->assertJsonPath('visits.0.partner_earning_pence', 6000)
             ->assertJsonPath('visits.0.goals.0.text', 'Clean kitchen')
             ->assertJsonPath('visits.0.goals.0.completed', null);

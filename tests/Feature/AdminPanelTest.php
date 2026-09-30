@@ -39,7 +39,7 @@ class AdminPanelTest extends TestCase
             ->assertSee('#D1DFD2', false)
             ->assertSee('#1F2937', false)
             ->assertSee('#2C3848', false)
-            ->assertSee('Staff only. Cleaners sign in on the app, not here.', false)
+            ->assertSee('Staff only. The business signs in on the app, not here.', false)
             ->assertDontSee('MRR');
     }
 

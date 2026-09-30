@@ -91,8 +91,9 @@ class UpdatePublicProfile
     private function slug(Agency $agency, mixed $requested): string
     {
         $base = Str::slug(is_string($requested) && $requested !== '' ? $requested : (string) $agency->name);
-        if ($base === '') {
-            $base = 'agency';
+        // `GET /agency/logo` é a rota do dono logado; um slug igual ficaria inacessível.
+        if ($base === '' || $base === 'logo') {
+            $base = $base === '' ? 'agency' : 'logo-agency';
         }
         $slug = $base;
         $suffix = 2;

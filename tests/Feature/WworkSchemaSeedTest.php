@@ -27,7 +27,7 @@ class WworkSchemaSeedTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_seed_creates_staff_prices_and_local_demo_without_houses(): void
+    public function test_seed_creates_staff_prices_and_local_demo_with_the_portal_client(): void
     {
         config(['services.stripe.secret' => null]);
         $this->seedDatabase();
@@ -110,7 +110,8 @@ class WworkSchemaSeedTest extends TestCase
         $this->assertSame($agency->id, $invited->membership->agency_id);
         $this->assertSame(MembershipRole::Invited, $invited->membership->role);
         $this->assertSame(60, $invited->membership->rate);
-        $this->assertSame(0, $agency->clients()->count());
+        $this->assertSame(1, $agency->clients()->count());
+        $this->assertNotNull($agency->clients()->first()->user_id);
         $this->assertSame(0, $agency->visits()->count());
 
         $subscription = $agency->subscription;
