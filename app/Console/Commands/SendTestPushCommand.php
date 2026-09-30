@@ -38,7 +38,7 @@ class SendTestPushCommand extends Command
 
         if (! $result['sent']) {
             $this->error('Não enviado. HTTP '.($result['status'] ?? '-').' '.json_encode($result['errors'], JSON_UNESCAPED_UNICODE));
-            $this->line('Se aparecer invalid_aliases, esse usuário ainda não tem navegador inscrito: abra o app logado, aceite as notificações e tente de novo.');
+            $this->line('Se aparecer invalid_aliases ou "not subscribed", esse usuário ainda não tem navegador inscrito: abra o app logado, aceite as notificações e tente de novo.');
 
             return self::FAILURE;
         }
