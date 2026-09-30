@@ -52,8 +52,6 @@ final class ErrorCodes
 
     public const INVITE_EXPIRED = 'invite.expired';
 
-    public const INVITE_CANCELLED = 'invite.cancelled';
-
     public const INVITE_NOT_FOUND = 'invite.not_found';
 
     public const CLIENT_MISSING_POINT = 'client.missing_point';
@@ -63,8 +61,6 @@ final class ErrorCodes
     public const CLIENT_HAS_ACTIVE_VISITS = 'client.has_active_visits';
 
     public const CLIENT_HAS_INVOICES = 'client.has_invoices';
-
-    public const CLIENT_INVALID = 'client.invalid';
 
     public const CLIENT_NOT_FOUND = 'client.not_found';
 
@@ -89,8 +85,6 @@ final class ErrorCodes
     public const VISIT_ALREADY_DONE = 'visit.already_done';
 
     public const VISIT_INVOICED = 'visit.invoiced';
-
-    public const VISIT_PAID = 'visit.paid';
 
     public const VISIT_NOT_OFFERED = 'visit.not_offered';
 

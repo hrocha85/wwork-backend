@@ -12,7 +12,6 @@ use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
 use App\Models\Membership;
-use App\Models\Payout;
 use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -135,9 +134,9 @@ class VisitsApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'visits')
             ->assertJsonPath('visits.0.id', $visitId)
-            ->assertJsonPath('visits.0.price_pence', 10000)
+            ->assertJsonMissingPath('visits.0.price_pence')
             ->assertJsonMissingPath('visits.0.rate')
-            ->assertJsonPath('visits.0.client.whatsapp', fn ($value) => is_string($value) && $value !== '')
+            ->assertJsonMissingPath('visits.0.client.whatsapp')
             ->assertJsonPath('visits.0.partner_earning_pence', 6000)
             ->assertJsonPath('visits.0.goals.0.text', 'Clean kitchen')
             ->assertJsonPath('visits.0.goals.0.completed', null);
@@ -184,7 +183,7 @@ class VisitsApiTest extends TestCase
         ]);
     }
 
-    public function test_owner_edits_or_removes_a_finished_visit_until_it_is_billed_and_goals_are_required_with_two_partners(): void
+    public function test_owner_cannot_cancel_a_finished_visit_and_goals_are_required_with_two_partners(): void
     {
         $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
         $partner = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
@@ -242,48 +241,13 @@ class VisitsApiTest extends TestCase
             'status' => VisitStatus::Done,
         ]);
 
+        $this->deleteJson('/api/v1/visits/'.$done->id)
+            ->assertStatus(409)
+            ->assertExactJson(['error' => 'visit.already_done']);
+
         $this->patchJson('/api/v1/visits/'.$done->id, [
-            'assignee_id' => $partner->id,
+            'description' => 'nope',
         ])->assertStatus(409)->assertExactJson(['error' => 'visit.already_done']);
-
-        $this->patchJson('/api/v1/visits/'.$done->id, [
-            'description' => 'Fixed later',
-            'price_pence' => 9000,
-        ])->assertOk()
-            ->assertJsonPath('status', 'done')
-            ->assertJsonPath('description', 'Fixed later')
-            ->assertJsonPath('price_pence', 9000);
-
-        $paid = Visit::query()->create([
-            'agency_id' => $owner->membership->agency_id,
-            'client_id' => $client,
-            'assignee_id' => $partner->id,
-            'service_date' => '2026-09-23',
-            'service_time' => '09:00:00',
-            'price_pence' => 8000,
-            'rate' => 60,
-            'partner_earning_pence' => 4800,
-            'lat' => 51.5,
-            'lng' => -0.1,
-            'status' => VisitStatus::Done,
-        ]);
-        Payout::query()->create([
-            'agency_id' => $paid->agency_id,
-            'visit_id' => $paid->id,
-            'user_id' => $partner->id,
-            'amount_pence' => 4800,
-            'paid' => true,
-        ]);
-
-        $this->patchJson('/api/v1/visits/'.$paid->id, ['price_pence' => 1])
-            ->assertStatus(409)
-            ->assertExactJson(['error' => 'visit.paid']);
-        $this->deleteJson('/api/v1/visits/'.$paid->id)
-            ->assertStatus(409)
-            ->assertExactJson(['error' => 'visit.paid']);
-
-        $this->deleteJson('/api/v1/visits/'.$done->id)->assertNoContent();
-        $this->assertSoftDeleted('visits', ['id' => $done->id]);
 
         $billed = Visit::query()->create([
             'agency_id' => $owner->membership->agency_id,

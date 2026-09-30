@@ -240,13 +240,6 @@ class VisitResource
             ->where('status', VisitStatus::CheckedIn)
             ->orderByDesc('check_in_at')
             ->get();
-        $scheduled = (clone $base)
-            ->whereIn('status', [VisitStatus::Offered, VisitStatus::Todo, VisitStatus::EnRoute])
-            ->orderBy('service_date')
-            ->orderBy('service_time')
-            ->orderBy('id')
-            ->limit(50)
-            ->get();
         $done = (clone $base)
             ->where('status', VisitStatus::Done)
             ->orderByDesc('service_date')
@@ -256,7 +249,7 @@ class VisitResource
             ->get();
 
         return [
-            'visits' => $open->concat($scheduled)->concat($done)->map(
+            'visits' => $open->concat($done)->map(
                 fn (Visit $visit): array => self::item($visit, $membership->role, $timezone),
             )->values()->all(),
         ];

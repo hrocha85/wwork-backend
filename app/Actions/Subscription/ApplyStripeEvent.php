@@ -2,20 +2,13 @@
 
 namespace App\Actions\Subscription;
 
-use App\Enums\AnnualDiscount;
 use App\Enums\SubscriptionStatus;
-use App\Mail\SubscriptionStatusMail;
-use App\Models\PlanPrice;
 use App\Models\Subscription;
-use App\Services\SeatPlan;
 use App\Services\Stripe\StripeBilling;
-use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 
 class ApplyStripeEvent
 {
-    public function __construct(private SeatPlan $seats) {}
-
     public function __invoke(string $payload, ?string $signature, StripeBilling $stripe): void
     {
         try {
@@ -37,67 +30,16 @@ class ApplyStripeEvent
             'invoice.payment_succeeded' => $this->mark($subscription, 'active', 'subscription.payment_succeeded'),
             'invoice.payment_failed' => $this->mark($subscription, 'past_due', 'subscription.payment_failed'),
             'customer.subscription.deleted' => $this->mark($subscription, 'cancelled', 'subscription.deleted'),
-            'customer.subscription.updated' => $this->sync($subscription, $event['data']),
+            'customer.subscription.updated' => $subscription->save(),
             default => null,
         };
     }
 
     private function mark(Subscription $subscription, string $status, string $action): void
     {
-        $previous = $subscription->status;
-
         $subscription->status = SubscriptionStatus::from($status);
         $subscription->stripe_status = $status;
         $subscription->save();
         RecordActivity::add($subscription->agency_id, null, $action);
-
-        // O Stripe reenvia webhooks e toda renovação paga repete `payment_succeeded`: só a mudança de estado vira e-mail.
-        if ($previous === $subscription->status) {
-            return;
-        }
-
-        $subscription->loadMissing('agency');
-        app(MailNotifier::class)->toOwner(
-            'subscription.'.$status,
-            $subscription->agency,
-            new SubscriptionStatusMail($subscription->status, $subscription->agency->name),
-        );
-    }
-
-    /**
-     * Quando a fase 2 do schedule começa, o item passa para o preço cheio.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    private function sync(Subscription $subscription, array $data): void
-    {
-        if (array_key_exists('schedule', $data) && $data['schedule'] === null) {
-            $subscription->stripe_schedule_id = null;
-        }
-
-        $priceId = $data['price'] ?? null;
-        $row = is_string($priceId) && $priceId !== $subscription->stripe_price_id
-            ? PlanPrice::query()->where('stripe_price_id', $priceId)->first()
-            : null;
-
-        if ($row !== null) {
-            $wasOffer = $subscription->discount_type === AnnualDiscount::Launch;
-            $subscription->plan = $row->plan;
-            $subscription->billing = $row->billing;
-            $subscription->discount_type = $row->discount_type;
-            $subscription->stripe_price_id = $row->stripe_price_id;
-            $subscription->currency = $row->currency;
-            $subscription->amount_minor = $this->seats->amount($subscription->agency, $subscription, $subscription->seats);
-            if ($row->discount_type !== AnnualDiscount::Launch) {
-                $subscription->offer_ends_at = null;
-            }
-            if ($wasOffer && $row->discount_type === AnnualDiscount::None) {
-                RecordActivity::add($subscription->agency_id, null, 'subscription.offer_ended', [
-                    'amount' => $subscription->amount_minor,
-                ]);
-            }
-        }
-
-        $subscription->save();
     }
 }

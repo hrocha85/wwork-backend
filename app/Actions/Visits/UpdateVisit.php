@@ -23,19 +23,8 @@ class UpdateVisit
             throw new ApiException(ErrorCodes::VISIT_FORBIDDEN, 403);
         }
 
-        $done = $visit->status === VisitStatus::Done;
-
-        if ($done) {
-            if (array_key_exists('assignee_id', $input)) {
-                throw new ApiException(ErrorCodes::VISIT_ALREADY_DONE, 409);
-            }
-            $visit->load(['invoiceLine', 'payout']);
-            if ($visit->invoiceLine !== null) {
-                throw new ApiException(ErrorCodes::VISIT_INVOICED, 409);
-            }
-            if ($visit->payout?->paid === true) {
-                throw new ApiException(ErrorCodes::VISIT_PAID, 409);
-            }
+        if ($visit->status === VisitStatus::Done) {
+            throw new ApiException(ErrorCodes::VISIT_ALREADY_DONE, 409);
         }
 
         if (array_key_exists('date', $input)) {
@@ -62,11 +51,6 @@ class UpdateVisit
         }
 
         $visit->save();
-
-        if ($done && $visit->payout !== null && array_key_exists('price_pence', $input)) {
-            $visit->payout->amount_pence = (int) ($visit->partner_earning_pence ?? 0);
-            $visit->payout->save();
-        }
 
         if (array_key_exists('assignee_id', $input)) {
             app(ChangeAssignee::class)($visit, $input['assignee_id']);
