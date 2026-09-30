@@ -8,6 +8,7 @@ use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
+use App\Support\StoredImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -42,6 +43,7 @@ class StoreAgencyLogo
             Storage::disk('local')->delete($agency->logo_path);
         }
 
+        StoredImage::shrink($logo, StoredImage::LOGO);
         $path = $logo->storeAs('agencies/'.$agency->id, 'logo.'.$extension, 'local');
         $agency->forceFill(['logo_path' => $path])->save();
         RecordActivity::add($agency->id, AgencyContext::user()->id, 'agency.logo');

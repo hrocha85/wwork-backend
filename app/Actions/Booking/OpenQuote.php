@@ -11,6 +11,7 @@ use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\MailNotifier;
 use App\Support\RecordActivity;
+use App\Support\StoredImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -51,6 +52,7 @@ class OpenQuote
             ]);
 
             if ($photo !== null) {
+                StoredImage::shrink($photo);
                 $path = $photo->store('quotes/'.$agency->id, 'local');
                 $request->photo_path = $path;
                 $request->save();

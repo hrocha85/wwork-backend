@@ -8,18 +8,22 @@ use App\Actions\Team\InvitePartner;
 use App\Actions\Team\RemoveMember;
 use App\Actions\Team\ResendInvite;
 use App\Actions\Team\UpdateRate;
+use App\Enums\MembershipRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AcceptInviteRequest;
 use App\Http\Requests\Api\V1\InvitePartnerRequest;
 use App\Http\Requests\Api\V1\UpdateRateRequest;
 use App\Http\Resources\Api\V1\TeamResource;
 use App\Models\Invite;
+use App\Models\Membership;
 use App\Models\User;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TeamController extends Controller
 {
@@ -34,6 +38,28 @@ class TeamController extends Controller
             TeamResource::invite($created, AgencyContext::membership()->agency->timezone),
             201,
         );
+    }
+
+    public function avatar(int $userId): StreamedResponse
+    {
+        $membership = AgencyContext::membership();
+
+        if ($membership->role !== MembershipRole::Owner) {
+            throw new ApiException(ErrorCodes::TEAM_NOT_OWNER, 403);
+        }
+
+        $member = Membership::query()
+            ->where('agency_id', $membership->agency_id)
+            ->where('user_id', $userId)
+            ->with('user')
+            ->first();
+        $path = $member?->user?->avatar_path;
+
+        if (! filled($path) || ! Storage::disk('local')->exists($path)) {
+            throw new ApiException(ErrorCodes::NOT_FOUND, 404);
+        }
+
+        return Storage::disk('local')->response($path);
     }
 
     public function index(): JsonResponse

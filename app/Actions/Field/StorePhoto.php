@@ -7,6 +7,7 @@ use App\Models\VisitPhoto;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\StoredImage;
 use Illuminate\Http\UploadedFile;
 
 class StorePhoto
@@ -26,6 +27,7 @@ class StorePhoto
             throw new ApiException(ErrorCodes::VISIT_PHOTO_LIMIT, 422);
         }
 
+        StoredImage::shrink($photo);
         $name = 'photo_'.($count + 1).'.'.$photo->extension();
         $path = $photo->storeAs('visits/'.$visit->id, $name, 'local');
 

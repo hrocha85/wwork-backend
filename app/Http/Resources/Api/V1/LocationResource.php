@@ -53,6 +53,7 @@ class LocationResource
                 return [
                     'user_id' => $row->user_id,
                     'name' => $user->name,
+                    'has_avatar' => filled($user->avatar_path),
                     'lat' => $user->last_lat === null ? null : (float) $user->last_lat,
                     'lng' => $user->last_lng === null ? null : (float) $user->last_lng,
                     'at' => $located

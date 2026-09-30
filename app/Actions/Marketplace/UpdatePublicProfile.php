@@ -8,6 +8,7 @@ use App\Models\PortfolioPhoto;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\StoredImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -56,6 +57,7 @@ class UpdatePublicProfile
             throw new ApiException(ErrorCodes::AGENCY_LOGO_INVALID, 422);
         }
 
+        StoredImage::shrink($file);
         $path = $file->store('agencies/'.$agency->id.'/portfolio', 'local');
 
         return $agency->portfolioPhotos()->create([

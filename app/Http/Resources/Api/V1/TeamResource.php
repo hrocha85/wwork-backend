@@ -56,6 +56,7 @@ class TeamResource
                     ? null
                     : Carbon::parse($row->user->last_seen_at)->timezone($timezone)->toIso8601String(),
                 'rate' => $row->role->value === 'owner' ? null : $row->rate,
+                'has_avatar' => filled($row->user->avatar_path),
             ])
             ->values()
             ->all();

@@ -13,6 +13,7 @@ use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\PhoneNumber;
+use App\Support\StoredImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -192,6 +193,7 @@ class ClientAccess
             throw new ApiException(ErrorCodes::CLIENT_JOIN_INVALID, 403);
         }
 
+        StoredImage::shrink($file, StoredImage::AVATAR);
         $path = $file->store('clients/'.$user->id, 'local');
 
         foreach ($clients as $client) {
