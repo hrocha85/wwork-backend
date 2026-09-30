@@ -124,6 +124,7 @@ class AuthSessionResource
             'must_change_password' => $user->must_change_password,
             'first_access_at' => self::iso($user->first_access_at, $timezone),
             'last_seen_at' => self::iso($user->last_seen_at, $timezone),
+            'has_avatar' => filled($user->avatar_path),
         ];
 
         if (! $withMustChange) {

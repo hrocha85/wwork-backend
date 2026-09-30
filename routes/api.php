@@ -56,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware(['app.password', 'subscription.write'])->group(function () {
         Route::patch('/me', [MeController::class, 'update']);
+        Route::post('/me/avatar', [MeController::class, 'avatar']);
+        Route::get('/me/avatar', [MeController::class, 'showAvatar']);
         Route::patch('/agency', [AgencyController::class, 'update']);
         Route::post('/onboarding', [AgencyController::class, 'onboarding']);
         Route::post('/agency/logo', [AgencyController::class, 'logo']);
