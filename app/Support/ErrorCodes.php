@@ -52,6 +52,8 @@ final class ErrorCodes
 
     public const INVITE_EXPIRED = 'invite.expired';
 
+    public const INVITE_CANCELLED = 'invite.cancelled';
+
     public const INVITE_NOT_FOUND = 'invite.not_found';
 
     public const CLIENT_MISSING_POINT = 'client.missing_point';

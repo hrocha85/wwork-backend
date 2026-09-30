@@ -4,11 +4,13 @@ namespace App\Actions\Team;
 
 use App\Enums\Locale;
 use App\Enums\MembershipRole;
+use App\Mail\InviteAcceptedMail;
 use App\Models\Invite;
 use App\Models\Membership;
 use App\Models\User;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,14 +31,22 @@ class AcceptInvite
             throw new ApiException(ErrorCodes::ME_INVALID_LOCALE, 422);
         }
 
-        $invite = Invite::query()->where('token', $token)->first();
+        $invite = Invite::findByPlainToken($token);
 
-        if ($invite === null || $invite->expires_at->isPast()) {
+        if ($invite === null) {
             throw new ApiException(ErrorCodes::INVITE_EXPIRED, 404);
+        }
+
+        if ($invite->cancelled_at !== null) {
+            throw new ApiException(ErrorCodes::INVITE_CANCELLED, 409);
         }
 
         if ($invite->accepted_at !== null) {
             throw new ApiException(ErrorCodes::INVITE_ALREADY_ACCEPTED, 409);
+        }
+
+        if ($invite->expires_at->isPast()) {
+            throw new ApiException(ErrorCodes::INVITE_EXPIRED, 404);
         }
 
         if (User::query()->where('email', $invite->email)->exists()) {
@@ -62,6 +72,8 @@ class AcceptInvite
         $invite->forceFill(['accepted_at' => now()])->save();
 
         RecordActivity::add($invite->agency_id, $user->id, 'team.invite_accepted');
+
+        app(MailNotifier::class)->toOwner('team.invite_accepted', $invite->agency, new InviteAcceptedMail($user->name, $user->email), $user->id);
 
         Auth::guard('web')->login($user);
         request()->session()->regenerate();

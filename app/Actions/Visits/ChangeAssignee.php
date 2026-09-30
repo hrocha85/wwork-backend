@@ -4,10 +4,12 @@ namespace App\Actions\Visits;
 
 use App\Enums\MembershipRole;
 use App\Enums\VisitStatus;
+use App\Mail\VisitOfferedMail;
 use App\Models\Membership;
 use App\Models\Visit;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 
 class ChangeAssignee
 {
@@ -26,6 +28,7 @@ class ChangeAssignee
             throw new ApiException(ErrorCodes::VISIT_INVALID_ASSIGNEE, 422);
         }
 
+        $previous = $visit->assignee_id;
         $visit->assignee_id = $membership->user_id;
 
         if ($membership->role === MembershipRole::Owner) {
@@ -40,6 +43,11 @@ class ChangeAssignee
         }
 
         $visit->save();
+
+        if ($previous !== $membership->user_id && $membership->role === MembershipRole::Invited) {
+            $membership->loadMissing('user');
+            app(MailNotifier::class)->toUser('visit.offered', $membership->user, new VisitOfferedMail($visit), $visit->agency_id);
+        }
 
         return $visit;
     }

@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/partners', [TeamController::class, 'store']);
         Route::get('/team', [TeamController::class, 'index']);
         Route::post('/invites/{invite}/resend', [TeamController::class, 'resend']);
+        Route::post('/invites/{invite}/cancel', [TeamController::class, 'cancel']);
         Route::patch('/team/{userId}/rate', [TeamController::class, 'updateRate']);
         Route::delete('/team/{userId}', [TeamController::class, 'destroy']);
 

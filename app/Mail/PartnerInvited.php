@@ -3,33 +3,38 @@
 namespace App\Mail;
 
 use App\Models\Invite;
-use Illuminate\Bus\Queueable;
-use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
-class PartnerInvited extends Mailable
+class PartnerInvited extends NoticeMail
 {
-    use Queueable, SerializesModels;
+    public function __construct(
+        public Invite $invite,
+        public string $url,
+    ) {}
 
-    public function __construct(public Invite $invite) {}
-
-    public function envelope(): Envelope
-    {
-        return new Envelope(subject: 'WWork invite');
-    }
-
-    public function content(): Content
+    protected function subjectLine(): string
     {
         $this->invite->loadMissing('agency');
 
-        return new Content(
-            text: 'mail.partner-invite',
-            with: [
-                'agency' => $this->invite->agency->name,
-                'url' => rtrim((string) config('wwork.frontend_url'), '/').'/invites/'.$this->invite->token,
+        return __('mail.invite.subject', ['agency' => $this->invite->agency->name]);
+    }
+
+    protected function notice(): array
+    {
+        $this->invite->loadMissing(['agency', 'inviter']);
+        $agency = $this->invite->agency->name;
+        $inviter = $this->invite->inviter?->name;
+
+        return [
+            'heading' => __('mail.invite.heading'),
+            'lines' => [
+                $inviter
+                    ? __('mail.invite.body_by', ['inviter' => $inviter, 'agency' => $agency])
+                    : __('mail.invite.body', ['agency' => $agency]),
+                __('mail.invite.steps'),
+                __('mail.invite.expires', ['days' => Invite::TTL_DAYS]),
             ],
-        );
+            'button' => ['label' => __('mail.invite.button'), 'url' => $this->url],
+            'note' => __('mail.invite.ignore'),
+        ];
     }
 }

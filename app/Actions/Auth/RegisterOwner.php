@@ -9,6 +9,7 @@ use App\Enums\MembershipRole;
 use App\Enums\PlanCode;
 use App\Enums\SubscriptionStatus;
 use App\Enums\Trade;
+use App\Mail\OwnerWelcomeMail;
 use App\Models\Agency;
 use App\Models\Membership;
 use App\Models\Subscription;
@@ -17,6 +18,7 @@ use App\Services\SeatPlan;
 use App\Services\Stripe\StripeBilling;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -124,6 +126,12 @@ class RegisterOwner
 
             return $owner;
         });
+
+        app(MailNotifier::class)->toUser('account.welcome', $user, new OwnerWelcomeMail(
+            ownerName: $user->name,
+            agencyName: (string) $data['agency_name'],
+            emailAddress: $user->email,
+        ), $user->membership?->agency_id, $user->id);
 
         Auth::guard('web')->login($user);
         request()->session()->regenerate();

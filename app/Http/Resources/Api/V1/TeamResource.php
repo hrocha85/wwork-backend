@@ -22,7 +22,6 @@ class TeamResource
             'invite' => [
                 'id' => $invite->id,
                 'email' => $invite->email,
-                'token' => $invite->token,
                 'rate' => $invite->rate,
                 'accepted' => $invite->accepted_at !== null,
                 'expires_at' => Carbon::parse($invite->expires_at)->timezone($timezone)->toIso8601String(),
@@ -64,6 +63,7 @@ class TeamResource
         $pending = Invite::query()
             ->where('agency_id', $agency->id)
             ->whereNull('accepted_at')
+            ->whereNull('cancelled_at')
             ->where('expires_at', '>', now())
             ->orderBy('sent_at')
             ->get()

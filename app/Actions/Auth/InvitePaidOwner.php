@@ -17,9 +17,9 @@ use App\Models\User;
 use App\Services\SeatPlan;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class InvitePaidOwner
@@ -115,16 +115,11 @@ class InvitePaidOwner
     private function send(User $owner, string $password): void
     {
         $agency = $owner->membership?->agency;
-        try {
-            Mail::to($owner->email)->queue(new OwnerWelcomeMail(
-                ownerName: $owner->name,
-                agencyName: (string) $agency?->name,
-                emailAddress: $owner->email,
-                temporaryPassword: $password,
-                appUrl: rtrim((string) config('wwork.frontend_url'), '/').'/login',
-            ));
-        } catch (\Throwable) {
-            RecordActivity::add($agency?->id, null, 'mail.failed');
-        }
+        app(MailNotifier::class)->toUser('account.welcome_offline', $owner, new OwnerWelcomeMail(
+            ownerName: $owner->name,
+            agencyName: (string) $agency?->name,
+            emailAddress: $owner->email,
+            temporaryPassword: $password,
+        ), $agency?->id);
     }
 }

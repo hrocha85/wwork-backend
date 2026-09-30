@@ -2,15 +2,12 @@
 
 namespace App\Actions\Team;
 
-use App\Mail\PartnerInvited;
 use App\Models\Invite;
 use App\Policies\TeamPolicy;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 class ResendInvite
 {
@@ -27,17 +24,17 @@ class ResendInvite
             throw new ApiException(ErrorCodes::INVITE_ALREADY_ACCEPTED, 409);
         }
 
+        if ($invite->cancelled_at !== null) {
+            throw new ApiException(ErrorCodes::INVITE_CANCELLED, 409);
+        }
+
+        $plain = $invite->rotateToken();
         $invite->forceFill([
-            'token' => Str::random(40),
-            'expires_at' => now()->addDays(7),
+            'expires_at' => now()->addDays(Invite::TTL_DAYS),
             'sent_at' => now(),
         ])->save();
 
-        try {
-            Mail::to($invite->email)->send(new PartnerInvited($invite));
-        } catch (\Throwable) {
-            RecordActivity::add($invite->agency_id, $actor->id, 'mail.failed');
-        }
+        app(SendInviteMail::class)($invite, $plain, $actor);
 
         RecordActivity::add($invite->agency_id, $actor->id, 'team.invite_resent');
 

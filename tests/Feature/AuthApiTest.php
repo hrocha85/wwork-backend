@@ -2,12 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Mail\PasswordChangedMail;
+use App\Mail\PasswordResetMail;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
@@ -141,7 +142,7 @@ class AuthApiTest extends TestCase
 
     public function test_forgot_and_reset_password(): void
     {
-        Notification::fake();
+        Mail::fake();
 
         $this->postJson('/api/v1/forgot-password', ['email' => 'nobody@wwork.test'])
             ->assertOk()
@@ -151,17 +152,17 @@ class AuthApiTest extends TestCase
             ->assertOk()
             ->assertExactJson(['ok' => true]);
 
-        Notification::assertNothingSent();
+        Mail::assertNothingSent();
 
         $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
 
         $this->postJson('/api/v1/forgot-password', ['email' => 'owner@wwork.test'])
             ->assertOk();
 
-        Notification::assertSentTo($owner, ResetPassword::class, function (ResetPassword $notification) use ($owner): bool {
-            $url = $notification->toMail($owner)->actionUrl;
-
-            return str_contains($url, config('wwork.frontend_url').'/reset-password?token=');
+        Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail): bool {
+            return $mail->hasTo('owner@wwork.test')
+                && str_contains($mail->url, config('wwork.frontend_url').'/reset-password?token=')
+                && str_contains($mail->render(), e($mail->url));
         });
 
         $token = Password::broker()->createToken($owner);
@@ -195,6 +196,8 @@ class AuthApiTest extends TestCase
 
         $owner->refresh();
         $this->assertTrue(Hash::check('reset-pass', $owner->password));
+
+        Mail::assertSent(PasswordChangedMail::class, fn (PasswordChangedMail $mail): bool => $mail->hasTo('owner@wwork.test'));
     }
 
     public function test_refresh_token_keeps_access_after_the_cookie_is_gone(): void
