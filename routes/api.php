@@ -96,6 +96,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/visits/{visit}/events', [VisitController::class, 'event']);
         Route::post('/visits/{visit}/photos', [VisitController::class, 'photo']);
         Route::patch('/visits/{visit}/goals', [VisitController::class, 'goals']);
+        Route::get('/visits/{visit}/summary', [VisitController::class, 'summary']);
+        Route::post('/visits/{visit}/notify-email', [VisitController::class, 'notifyEmail']);
 
         Route::get('/invoice-candidates', [InvoiceController::class, 'candidates']);
         Route::get('/invoices/pending', [InvoiceController::class, 'pending']);

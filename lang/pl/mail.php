@@ -85,6 +85,10 @@ return [
         'rejected_body' => ':name odrzucił(a) Twoją wycenę.',
     ],
     'visit' => [
+        'confirmed_subject' => 'Twoje zlecenie u :agency jest potwierdzone',
+        'confirmed_heading' => 'Zlecenie potwierdzone',
+        'confirmed_body' => ':agency potwierdziła Twoje zlecenie. Do zobaczenia.',
+        'end_time' => 'Przewidywany koniec',
         'offered_subject' => 'Nowe zlecenie od :agency na :date',
         'offered_heading' => 'Masz nowe zlecenie do przyjęcia',
         'offered_body' => ':agency proponuje Ci zlecenie. Przyjmij je lub odrzuć w aplikacji.',

@@ -85,6 +85,10 @@ return [
         'rejected_body' => ':name rechazó tu presupuesto.',
     ],
     'visit' => [
+        'confirmed_subject' => 'Tu servicio con :agency está confirmado',
+        'confirmed_heading' => 'Reserva confirmada',
+        'confirmed_body' => ':agency confirmó tu reserva. Nos vemos pronto.',
+        'end_time' => 'Fin estimado',
         'offered_subject' => 'Nuevo trabajo de :agency el :date',
         'offered_heading' => 'Tienes un trabajo nuevo para aceptar',
         'offered_body' => ':agency te ofreció un trabajo. Acéptalo o recházalo en la app.',

@@ -20,6 +20,11 @@ class Visit extends Model
         'assignee_id',
         'service_date',
         'service_time',
+        'estimated_end_time',
+        'is_recurring',
+        'recurring_days',
+        'parent_visit_id',
+        'reminded_at',
         'description',
         'price_pence',
         'partner_earning_pence',
@@ -40,6 +45,9 @@ class Visit extends Model
     {
         return [
             'service_date' => 'date',
+            'is_recurring' => 'boolean',
+            'recurring_days' => 'array',
+            'reminded_at' => 'datetime',
             'price_pence' => 'integer',
             'partner_earning_pence' => 'integer',
             'rate' => 'integer',

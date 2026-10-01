@@ -2,10 +2,11 @@
 
 namespace App\Actions\Booking;
 
+use App\Actions\Visits\ExpandRecurrence;
+use App\Enums\VisitStatus;
 use App\Models\BookingRequest;
 use App\Models\Client;
 use App\Models\Visit;
-use App\Enums\VisitStatus;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
@@ -39,12 +40,22 @@ class ScheduleAcceptedRequest
             'assignee_id' => $owner->user_id,
             'service_date' => $date->toDateString(),
             'service_time' => substr((string) $time, 0, 5),
+            'estimated_end_time' => $request->estimated_end_time,
+            'is_recurring' => (bool) $request->is_recurring,
+            'recurring_days' => $request->is_recurring ? ($request->recurring_days ?? []) : null,
             'description' => $description === '' ? null : $description,
             'price_pence' => $quote ? (int) $request->quote_pence : (int) $request->service?->price_pence,
             'lat' => $client->lat,
             'lng' => $client->lng,
             'status' => VisitStatus::Todo,
         ]);
+
+        if ($visit->is_recurring && ! empty($visit->recurring_days)) {
+            app(ExpandRecurrence::class)($visit->fresh(['goals', 'agency']), [
+                'is_recurring' => true,
+                'recurring_days' => $visit->recurring_days,
+            ]);
+        }
 
         RecordActivity::add($agency->id, $owner->user_id, 'visit.created');
 

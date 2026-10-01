@@ -85,6 +85,10 @@ return [
         'rejected_body' => ':name declined your quote.',
     ],
     'visit' => [
+        'confirmed_subject' => 'Your job with :agency is confirmed',
+        'confirmed_heading' => 'Booking confirmed',
+        'confirmed_body' => ':agency confirmed your booking. We will see you soon.',
+        'end_time' => 'Estimated end',
         'offered_subject' => 'New job from :agency on :date',
         'offered_heading' => 'You have a new job to accept',
         'offered_body' => ':agency offered you a job. Accept or decline it in the app.',

@@ -9,6 +9,7 @@ use App\Actions\Visits\AcceptVisit;
 use App\Actions\Visits\CancelVisit;
 use App\Actions\Visits\CreateVisit;
 use App\Actions\Visits\DeclineVisit;
+use App\Actions\Visits\SendVisitConfirmation;
 use App\Actions\Visits\UpdateVisit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ListVisitsRequest;
@@ -109,6 +110,19 @@ class VisitController extends Controller
         $goals = $mark($this->visit($visit), $request->validated('goals'));
 
         return response()->json(VisitResource::goals($goals));
+    }
+
+    public function summary(int $visit): JsonResponse
+    {
+        return response()->json(VisitResource::summary($this->visit($visit)));
+    }
+
+    public function notifyEmail(int $visit, SendVisitConfirmation $notify): JsonResponse
+    {
+        $model = $this->visit($visit);
+        $notify($model);
+
+        return response()->json(['sent' => true, 'id' => $model->id]);
     }
 
     private function visit(int $id): Visit

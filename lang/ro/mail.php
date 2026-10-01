@@ -85,6 +85,10 @@ return [
         'rejected_body' => ':name a refuzat oferta ta.',
     ],
     'visit' => [
+        'confirmed_subject' => 'Serviciul tău cu :agency este confirmat',
+        'confirmed_heading' => 'Programare confirmată',
+        'confirmed_body' => ':agency a confirmat programarea. Ne vedem curând.',
+        'end_time' => 'Sfârșit estimat',
         'offered_subject' => 'Lucrare nouă de la :agency pe :date',
         'offered_heading' => 'Ai o lucrare nouă de acceptat',
         'offered_body' => ':agency ți-a oferit o lucrare. Accept-o sau refuz-o în aplicație.',
