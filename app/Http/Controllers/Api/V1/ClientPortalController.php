@@ -6,9 +6,14 @@ use App\Actions\Marketplace\ClientAccess;
 use App\Actions\Marketplace\SearchAgencies;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\User;
+use App\Support\ApiException;
+use App\Support\ErrorCodes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class ClientPortalController extends Controller
 {
@@ -77,5 +82,26 @@ class ClientPortalController extends Controller
         $access->avatar($user, $request->file('photo'));
 
         return response()->json(['ok' => true]);
+    }
+
+    public function invoicePdf(Request $request, int $invoice): Response
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $clientIds = Client::query()->where('user_id', $user->id)->pluck('id');
+
+        $invoiceModel = Invoice::query()
+            ->where('id', $invoice)
+            ->whereIn('client_id', $clientIds)
+            ->first();
+
+        if ($invoiceModel === null || $invoiceModel->pdf_path === null || ! Storage::disk('local')->exists($invoiceModel->pdf_path)) {
+            throw new ApiException(ErrorCodes::INVOICE_PDF_MISSING, 404);
+        }
+
+        return response(Storage::disk('local')->get($invoiceModel->pdf_path), 200, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 }

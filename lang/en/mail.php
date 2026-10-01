@@ -120,4 +120,5 @@ return [
         'amount' => 'Amount',
         'button' => 'See payments',
     ],
+    'invoice_share' => 'Your invoice from :agency is ready. View it here: :url',
 ];

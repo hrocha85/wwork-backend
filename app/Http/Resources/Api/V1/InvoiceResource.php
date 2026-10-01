@@ -60,17 +60,23 @@ class InvoiceResource
     /**
      * @return array<string, mixed>
      */
-    public static function index(string $period): array
+    public static function index(string $period, ?int $clientId = null): array
     {
         self::assertOwner();
         [$start, $end] = self::window($period);
 
-        $invoices = Invoice::query()
+        $query = Invoice::query()
             ->where('agency_id', AgencyContext::membership()->agency_id)
             ->whereHas('lines', function ($query) use ($start, $end): void {
                 $query->whereDate('service_date', '>=', $start->toDateString())
                     ->whereDate('service_date', '<=', $end->toDateString());
-            })
+            });
+
+        if ($clientId !== null) {
+            $query->where('client_id', $clientId);
+        }
+
+        $invoices = $query
             ->with(['client', 'lines'])
             ->orderBy('id')
             ->get();
@@ -127,6 +133,8 @@ class InvoiceResource
             'sent_at' => $invoice->sent_at?->timezone($timezone)->toIso8601String(),
             'paid_at' => $invoice->paid_at?->timezone($timezone)->toIso8601String(),
             'paid_note' => $invoice->paid_note,
+            'pay_by' => $invoice->pay_by?->value,
+            'pay_link' => $invoice->pay_link,
             'lines' => $invoice->lines->map(fn (InvoiceLine $line): array => [
                 'id' => $line->id,
                 'visit_id' => $line->visit_id,

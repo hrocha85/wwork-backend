@@ -24,6 +24,7 @@ class Agency extends Model
         'phone',
         'payment_method',
         'payment_details',
+        'payment_link',
         'logo_path',
         'vat_registered',
         'tax_id',

@@ -23,6 +23,8 @@ class StoreInvoiceRequest extends FormRequest
             'lines' => ['sometimes', 'array'],
             'lines.*.visit_id' => ['required', 'integer'],
             'lines.*.price_pence' => ['required', 'integer', 'min:1'],
+            'pay_by' => ['nullable', 'in:link,in_person'],
+            'pay_link' => ['nullable', 'string', 'url'],
         ];
     }
 }

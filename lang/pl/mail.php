@@ -120,4 +120,5 @@ return [
         'amount' => 'Kwota',
         'button' => 'Zobacz płatności',
     ],
+    'invoice_share' => 'Twoja faktura od :agency jest gotowa. Zobacz ją tutaj: :url',
 ];

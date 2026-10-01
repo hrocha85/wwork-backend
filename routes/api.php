@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/session', [AuthController::class, 'session']);
     Route::get('/me', [MeController::class, 'show']);
     Route::get('/client/home', [ClientPortalController::class, 'home']);
+    Route::get('/client/invoices/{invoice}/pdf', [ClientPortalController::class, 'invoicePdf']);
     Route::post('/client/reviews', [ClientPortalController::class, 'review']);
     Route::post('/client/avatar', [ClientPortalController::class, 'avatar']);
     Route::post('/password/change', [PasswordController::class, 'change']);
@@ -97,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/visits/{visit}/goals', [VisitController::class, 'goals']);
 
         Route::get('/invoice-candidates', [InvoiceController::class, 'candidates']);
+        Route::get('/invoices/pending', [InvoiceController::class, 'pending']);
         Route::get('/invoices', [InvoiceController::class, 'index']);
         Route::post('/invoices', [InvoiceController::class, 'store']);
         Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);

@@ -120,4 +120,5 @@ return [
         'amount' => 'Sumă',
         'button' => 'Vezi plățile',
     ],
+    'invoice_share' => 'Factura ta de la :agency este gată. Vezi-o aici: :url',
 ];
