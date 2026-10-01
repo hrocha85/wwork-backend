@@ -111,6 +111,67 @@ class VisitResource
     }
 
     /**
+     * Payload da tela de resumo pós-agendamento.
+     *
+     * @return array<string, mixed>
+     */
+    public static function summary(Visit $visit): array
+    {
+        $visit->loadMissing(['client', 'assignee', 'agency']);
+        $timezone = $visit->agency->timezone;
+        $membership = AgencyContext::membership();
+
+        return [
+            'id' => $visit->id,
+            'client' => [
+                'id' => $visit->client->id,
+                'name' => $visit->client->name,
+                'whatsapp' => $visit->client->whatsapp,
+                'email' => $visit->client->email,
+            ],
+            'assignee' => $visit->assignee === null ? null : [
+                'id' => $visit->assignee->id,
+                'name' => $visit->assignee->name,
+            ],
+            'agency' => $visit->agency->name,
+            'description' => $visit->description,
+            'date' => $visit->service_date->timezone($timezone)->toDateString(),
+            'time' => substr((string) $visit->service_time, 0, 5),
+            'estimated_end_time' => $visit->estimated_end_time === null
+                ? null
+                : substr((string) $visit->estimated_end_time, 0, 5),
+            'price_pence' => $visit->price_pence,
+            'currency' => $visit->agency->currency,
+            'is_recurring' => (bool) $visit->is_recurring,
+            'recurring_days' => $visit->recurring_days ?? [],
+            'occurrences' => $visit->is_recurring
+                ? self::occurrences($visit, (int) $membership->agency_id)
+                : [],
+            'email_available' => filled($visit->client->email),
+        ];
+    }
+
+    /**
+     * @return list<array{date: string, time: string}>
+     */
+    private static function occurrences(Visit $visit, int $agencyId): array
+    {
+        return Visit::query()
+            ->where('agency_id', $agencyId)
+            ->where('parent_visit_id', $visit->parent_visit_id ?? $visit->id)
+            ->where('id', '!=', $visit->id)
+            ->orderBy('service_date')
+            ->orderBy('service_time')
+            ->get()
+            ->map(fn (Visit $other): array => [
+                'date' => $other->service_date->toDateString(),
+                'time' => substr((string) $other->service_time, 0, 5),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function event(CheckEvent $event, Visit $visit): array
@@ -179,6 +240,12 @@ class VisitResource
             'client' => $client,
             'date' => $visit->service_date->toDateString(),
             'time' => substr((string) $visit->service_time, 0, 5),
+            'estimated_end_time' => $visit->estimated_end_time === null
+                ? null
+                : substr((string) $visit->estimated_end_time, 0, 5),
+            'is_recurring' => (bool) $visit->is_recurring,
+            'recurring_days' => $visit->recurring_days ?? [],
+            'parent_visit_id' => $visit->parent_visit_id,
             'status' => $visit->status->value,
             'description' => $visit->description,
             'partner_earning_pence' => $visit->partner_earning_pence,

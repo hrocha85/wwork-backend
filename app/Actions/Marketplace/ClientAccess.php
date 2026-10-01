@@ -2,9 +2,11 @@
 
 namespace App\Actions\Marketplace;
 
+use App\Enums\InvoiceStatus;
 use App\Enums\Locale;
 use App\Enums\VisitStatus;
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\Visit;
@@ -102,15 +104,35 @@ class ClientAccess
     }
 
     /**
-     * @return array{services: array<int, array<string, mixed>>, place: array{lat: float, lng: float}|null}
+     * @return array{
+     *     upcoming: array<int, array{visit_id: int, agency_name: string, agency_slug: string|null, booking_token: string|null, description: string|null, service_date: string, service_time: string, status: string}>,
+     *     invoices: array<int, array{id: int, number: string, agency_name: string, agency_slug: string|null, service_date: string, total_pence: int, status: string, pdf_url: string|null}>,
+     *     place: array{lat: float, lng: float}|null
+     * }
      */
     public function home(User $user): array
     {
         $clients = Client::query()->where('user_id', $user->id)->get();
         $place = $clients->first(fn (Client $client): bool => $client->lat !== null);
+        $clientIds = $clients->pluck('id');
 
-        $visits = Visit::query()
-            ->whereIn('client_id', $clients->pluck('id'))
+        $upcoming = Visit::query()
+            ->whereIn('client_id', $clientIds)
+            ->with(['agency', 'client'])
+            ->whereIn('status', [VisitStatus::Offered, VisitStatus::Todo, VisitStatus::EnRoute, VisitStatus::CheckedIn])
+            ->orderBy('service_date')
+            ->orderBy('service_time')
+            ->get();
+
+        $invoices = Invoice::query()
+            ->whereIn('client_id', $clientIds)
+            ->where('status', '!=', InvoiceStatus::ToSend)
+            ->with(['agency', 'lines'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $doneVisits = Visit::query()
+            ->whereIn('client_id', $clientIds)
             ->with(['agency', 'client'])
             ->where('status', VisitStatus::Done)
             ->orderByDesc('service_date')
@@ -118,17 +140,28 @@ class ClientAccess
             ->limit(8)
             ->get();
 
-        $reviewed = Review::query()->whereIn('visit_id', $visits->pluck('id'))->pluck('visit_id')->all();
+        $reviewed = Review::query()->whereIn('visit_id', $doneVisits->pluck('id'))->pluck('visit_id')->all();
 
         return [
-            'services' => $visits->map(fn (Visit $visit): array => [
+            'upcoming' => $upcoming->map(fn (Visit $visit): array => [
                 'visit_id' => $visit->id,
                 'agency_name' => $visit->agency->name,
                 'agency_slug' => $visit->agency->public_slug,
                 'booking_token' => $visit->agency->booking_token,
                 'description' => $visit->description,
+                'service_date' => $visit->service_date->toDateString(),
+                'service_time' => $visit->service_time?->format('H:i'),
                 'status' => $visit->status->value,
-                'reviewed' => in_array($visit->id, $reviewed, true),
+            ])->values()->all(),
+            'invoices' => $invoices->map(fn (Invoice $invoice): array => [
+                'id' => $invoice->id,
+                'number' => sprintf('INV-%04d', $invoice->number),
+                'agency_name' => $invoice->agency->name,
+                'agency_slug' => $invoice->agency->public_slug,
+                'service_date' => $invoice->lines->min(fn ($line) => $line->service_date->toDateString()),
+                'total_pence' => $invoice->total_pence,
+                'status' => $invoice->status->value,
+                'pdf_url' => $invoice->pdf_path ? route('invoices.client.pdf', ['invoice' => $invoice->id]) : null,
             ])->values()->all(),
             'place' => $place === null ? null : [
                 'lat' => (float) $place->lat,

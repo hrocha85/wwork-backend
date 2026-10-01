@@ -85,6 +85,10 @@ return [
         'rejected_body' => ':name recusou o seu orçamento.',
     ],
     'visit' => [
+        'confirmed_subject' => 'Seu serviço com :agency está confirmado',
+        'confirmed_heading' => 'Agendamento confirmado',
+        'confirmed_body' => ':agency confirmou o seu agendamento. Nos vemos em breve.',
+        'end_time' => 'Previsão de término',
         'offered_subject' => 'Novo serviço de :agency em :date',
         'offered_heading' => 'Você tem um serviço novo para aceitar',
         'offered_body' => ':agency ofereceu um serviço para você. Aceite ou recuse no app.',
@@ -120,4 +124,5 @@ return [
         'amount' => 'Valor',
         'button' => 'Ver pagamentos',
     ],
+    'invoice_share' => 'A sua fatura de :agency está pronta. Veja aqui: :url',
 ];

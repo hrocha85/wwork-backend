@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PayBy;
 use App\Models\Invoice;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -39,6 +40,9 @@ class InvoicePdf
             'vat' => $agency->vat_registered ? (string) $agency->tax_id : null,
             'paymentLabel' => $this->paymentLabel($agency->payment_method, $labels),
             'paymentDetails' => $agency->payment_details,
+            'invoicePayBy' => $invoice->pay_by,
+            'invoicePayLink' => $invoice->pay_link,
+            'invoicePaymentLabel' => $this->invoicePaymentLabel($invoice->pay_by, $invoice->pay_link, $labels),
             'logo' => $this->logoData($agency->logo_path),
             'initial' => mb_strtoupper(mb_substr($agency->name, 0, 1)),
             'number' => sprintf('INV-%04d', $invoice->number),
@@ -87,6 +91,8 @@ class InvoicePdf
             'bank_transfer' => 'Bank transfer',
             'cash' => 'Cash',
             'other' => 'Other',
+            'card_link' => 'Card via link',
+            'in_person' => 'In person',
         ];
         $catalogs = [
             'en' => ['invoice' => 'Invoice', 'description' => 'Description', 'amount' => 'Amount', 'total' => 'Total', 'vat' => 'VAT'] + $shared,
@@ -111,6 +117,26 @@ class InvoicePdf
         }
 
         return $labels[$payment->value] ?? null;
+    }
+
+    /**
+     * @param  array<string, string>  $labels
+     */
+    private function invoicePaymentLabel(?string $payBy, ?string $payLink, array $labels): ?string
+    {
+        $method = PayBy::tryFrom((string) $payBy);
+
+        if ($method === null) {
+            return null;
+        }
+
+        $label = $labels[$method->value] ?? null;
+
+        if ($method === PayBy::Link && filled($payLink)) {
+            return $label.': '.$payLink;
+        }
+
+        return $label;
     }
 
     private function logoData(?string $path): ?string

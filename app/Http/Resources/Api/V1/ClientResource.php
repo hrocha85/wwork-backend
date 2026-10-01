@@ -2,8 +2,11 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Enums\InvoiceStatus;
 use App\Enums\ContactChannel;
 use App\Models\Client;
+use App\Models\Invoice;
+use App\Models\InvoiceLine;
 use App\Models\Visit;
 use App\Policies\ClientPolicy;
 use App\Support\AgencyContext;
@@ -79,7 +82,21 @@ class ClientResource
             throw new ApiException(ErrorCodes::CLIENT_FORBIDDEN, 403);
         }
 
-        $client->load('visits.assignee');
+        $client->load(['visits.assignee', 'invoices.lines']);
+
+        $invoices = $client->invoices
+            ->filter(fn (Invoice $invoice): bool => $invoice->status !== InvoiceStatus::ToSend)
+            ->sortByDesc(fn (Invoice $invoice) => $invoice->id)
+            ->map(fn (Invoice $invoice): array => [
+                'id' => $invoice->id,
+                'number' => sprintf('INV-%04d', $invoice->number),
+                'service_date' => $invoice->lines->min(fn (InvoiceLine $line) => $line->service_date->toDateString()),
+                'total_pence' => $invoice->total_pence,
+                'status' => $invoice->status->value,
+                'pdf_url' => $invoice->pdf_path ? route('invoices.client.pdf', ['invoice' => $invoice->id]) : null,
+            ])
+            ->values()
+            ->all();
 
         return [
             'id' => $client->id,
@@ -102,6 +119,7 @@ class ClientResource
                 ])
                 ->values()
                 ->all(),
+            'invoices' => $invoices,
         ];
     }
 

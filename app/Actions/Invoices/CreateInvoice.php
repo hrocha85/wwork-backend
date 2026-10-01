@@ -3,6 +3,7 @@
 namespace App\Actions\Invoices;
 
 use App\Enums\InvoiceStatus;
+use App\Enums\PayBy;
 use App\Enums\VisitStatus;
 use App\Models\Client;
 use App\Models\Invoice;
@@ -20,7 +21,7 @@ class CreateInvoice
     public function __construct(private InvoicePdf $pdf) {}
 
     /**
-     * @param  array{client_id: int, visit_ids: array<int, int>}  $input
+     * @param  array{client_id: int, visit_ids: array<int, int>, lines?: array<int, array{visit_id: int, price_pence: int}>, pay_by?: string, pay_link?: string}  $input
      */
     public function __invoke(array $input, bool $fromCheckout = false): Invoice
     {
@@ -53,7 +54,10 @@ class CreateInvoice
             throw new ApiException(ErrorCodes::CLIENT_NOT_FOUND, 404);
         }
 
-        $invoice = DB::transaction(function () use ($actor, $membership, $client, $charges, $fromCheckout): Invoice {
+        $payBy = isset($input['pay_by']) ? PayBy::tryFrom($input['pay_by']) : null;
+        $payLink = $input['pay_link'] ?? null;
+
+        $invoice = DB::transaction(function () use ($actor, $membership, $client, $charges, $fromCheckout, $payBy, $payLink): Invoice {
             $visits = Visit::query()->whereIn('id', array_keys($charges))->lockForUpdate()->get();
 
             if ($visits->count() !== count($charges)) {
@@ -68,6 +72,9 @@ class CreateInvoice
                 if ($visit->status !== VisitStatus::Done) {
                     throw new ApiException(ErrorCodes::INVOICE_VISIT_NOT_DONE, 422);
                 }
+                if ($visit->photos()->count() === 0) {
+                    throw new ApiException(ErrorCodes::INVOICE_VISIT_NOT_DONE, 422);
+                }
                 if ($fromCheckout && $visit->assignee_id !== $actor->id) {
                     throw new ApiException(ErrorCodes::INVOICE_FORBIDDEN, 403);
                 }
@@ -78,6 +85,10 @@ class CreateInvoice
                     throw new ApiException(ErrorCodes::INVOICE_VISIT_ALREADY_INVOICED, 422);
                 }
                 $amounts[$visit->id] = $amount;
+            }
+
+            if (! $client->address || trim($client->address) === '') {
+                throw new ApiException(ErrorCodes::INVOICE_CLIENT_MISMATCH, 422);
             }
 
             $number = ((int) Invoice::query()->where('agency_id', $membership->agency_id)->max('number')) + 1;
@@ -92,6 +103,8 @@ class CreateInvoice
                 'total_pence' => $total,
                 'locale' => $actor->locale,
                 'invoice_region' => $membership->agency->invoice_region,
+                'pay_by' => $payBy?->value,
+                'pay_link' => $payLink,
             ]);
 
             foreach ($visits as $visit) {

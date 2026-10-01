@@ -20,4 +20,9 @@ return [
 
     'onesignal_rest_key' => env('ONESIGNAL_REST_API_KEY'),
 
+    /*
+    | Semanas de horizonte ao expandir um agendamento semanal recorrente.
+    */
+    'recurrence_weeks' => (int) env('RECURRENCE_WEEKS', 12),
+
 ];

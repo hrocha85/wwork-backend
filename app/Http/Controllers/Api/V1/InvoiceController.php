@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Invoices\CreateInvoice;
+use App\Actions\Invoices\GetPendingInvoices;
 use App\Actions\Invoices\MarkInvoicePaid;
 use App\Actions\Invoices\ShareInvoice;
 use App\Http\Controllers\Controller;
@@ -25,6 +26,11 @@ class InvoiceController extends Controller
         return response()->json(InvoiceResource::candidates((int) request()->query('client_id')));
     }
 
+    public function pending(GetPendingInvoices $action): JsonResponse
+    {
+        return response()->json($action());
+    }
+
     public function store(StoreInvoiceRequest $request, CreateInvoice $create): JsonResponse
     {
         $invoice = $create($request->validated());
@@ -35,8 +41,9 @@ class InvoiceController extends Controller
     public function index(PeriodRequest $request): JsonResponse
     {
         $period = $request->validated('period') ?: 'week';
+        $clientId = $request->validated('client_id');
 
-        return response()->json(InvoiceResource::index($period));
+        return response()->json(InvoiceResource::index($period, $clientId));
     }
 
     public function show(int $invoice): JsonResponse

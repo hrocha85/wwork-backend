@@ -14,3 +14,5 @@ Artisan::command('subscriptions:remind-offer-ending', function (RemindOfferEndin
 })->purpose('Email owners 30 days before the launch price steps up or the annual renews');
 
 Schedule::command('subscriptions:remind-offer-ending')->dailyAt('09:00')->timezone('Europe/London');
+
+Schedule::command('visits:remind-upcoming')->everyFifteenMinutes();

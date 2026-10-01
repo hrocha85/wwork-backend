@@ -18,6 +18,9 @@ class BookingRequest extends Model
         'client_contact_channel',
         'requested_date',
         'requested_time',
+        'estimated_end_time',
+        'is_recurring',
+        'recurring_days',
         'status',
         'kind',
         'address',
@@ -51,6 +54,8 @@ class BookingRequest extends Model
             'requested_date' => 'date',
             'proposed_date' => 'date',
             'quote_pence' => 'integer',
+            'is_recurring' => 'boolean',
+            'recurring_days' => 'array',
             'status' => BookingRequestStatus::class,
             'client_contact_channel' => ContactChannel::class,
         ];

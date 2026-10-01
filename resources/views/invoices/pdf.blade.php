@@ -88,10 +88,13 @@
     <table class="notes">
         <tr>
             <td width="58%">
-                @if (filled($paymentLabel) || filled($paymentDetails))
+                @if (filled($paymentLabel) || filled($paymentDetails) || filled($invoicePayBy))
                     <div class="label">{{ $labels['notes'] }}</div>
                     @if (filled($paymentLabel))<p>{{ $paymentLabel }}</p>@endif
                     @if (filled($paymentDetails))<p>{{ $paymentDetails }}</p>@endif
+                    @if (filled($invoicePayBy))
+                        <p>{{ $invoicePaymentLabel }}</p>
+                    @endif
                 @endif
             </td>
             <td width="42%">

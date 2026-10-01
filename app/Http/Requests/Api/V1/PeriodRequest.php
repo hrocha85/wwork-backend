@@ -18,6 +18,7 @@ class PeriodRequest extends FormRequest
     {
         return [
             'period' => ['nullable', 'in:week,month'],
+            'client_id' => ['nullable', 'integer', 'exists:clients,id'],
         ];
     }
 }

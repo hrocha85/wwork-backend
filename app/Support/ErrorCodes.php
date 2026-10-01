@@ -100,6 +100,12 @@ final class ErrorCodes
 
     public const VISIT_GOAL_NOT_FOUND = 'visit.goal_not_found';
 
+    public const VISIT_RECURRING_DAYS_REQUIRED = 'visit.recurring_days_required';
+
+    public const VISIT_INVALID_END_TIME = 'visit.invalid_end_time';
+
+    public const VISIT_CLIENT_NO_EMAIL = 'visit.client_no_email';
+
     public const NOT_FOUND = 'not_found';
 
     public const INVOICE_FORBIDDEN = 'invoice.forbidden';

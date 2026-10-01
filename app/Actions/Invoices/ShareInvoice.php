@@ -10,6 +10,7 @@ use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\InvoiceShareToken;
 use App\Support\RecordActivity;
+use Illuminate\Support\Facades\Lang;
 
 class ShareInvoice
 {
@@ -45,9 +46,12 @@ class ShareInvoice
 
         RecordActivity::add($invoice->agency_id, $actor->id, 'invoice.shared');
 
+        $locale = $invoice->locale->value;
+        $text = Lang::get('mail.invoice_share', ['agency' => $invoice->agency->name, 'url' => $url], $locale);
+
         return [
             'pdf_url' => $url,
-            'text' => 'Your invoice from '.$invoice->agency->name.' is ready. View it here: '.$url,
+            'text' => $text,
         ];
     }
 }

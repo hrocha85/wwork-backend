@@ -4,7 +4,7 @@ namespace App\Actions\Field;
 
 use App\Actions\Invoices\CreateInvoice;
 use App\Actions\Invoices\ShareInvoice;
-use App\Actions\OneSignal\NotifyJobFinished;
+use App\Actions\OneSignal\PushNotificationService;
 use App\Enums\CheckEventType;
 use App\Enums\MembershipRole;
 use App\Enums\VisitStatus;
@@ -66,7 +66,6 @@ class RecordCheckEvent
             $visit->status = VisitStatus::CheckedIn;
             $visit->check_in_at = $at;
         }
-
         if ($eventType === CheckEventType::CheckOut) {
             if (! in_array($paymentMethod, ['cash', 'invoice'], true)) {
                 throw new ApiException(ErrorCodes::VISIT_PAYMENT_REQUIRED, 422);
@@ -91,7 +90,7 @@ class RecordCheckEvent
         RecordActivity::add($visit->agency_id, $actor->id, 'visit.'.$eventType->value);
 
         if ($eventType === CheckEventType::CheckOut) {
-            app(NotifyJobFinished::class)($visit, $duration);
+            app(PushNotificationService::class)->finished($visit, $duration);
             if ($paymentMethod === 'invoice') {
                 $invoice = app(CreateInvoice::class)([
                     'client_id' => $visit->client_id,
@@ -99,6 +98,10 @@ class RecordCheckEvent
                 ], true);
                 $event->setAttribute('invoice', app(ShareInvoice::class)->issue($invoice));
             }
+        }
+
+        if ($eventType === CheckEventType::CheckIn) {
+            app(PushNotificationService::class)->checkIn($visit->fresh(['client', 'agency', 'assignee']), $actor->id);
         }
 
         $event->setAttribute('duration_seconds', $duration);

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Field;
 
+use App\Enums\MembershipRole;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
 use App\Support\AgencyContext;
@@ -17,7 +18,10 @@ class StorePhoto
         $actor = AgencyContext::user();
         $membership = AgencyContext::membership();
 
-        if ($membership->agency_id !== $visit->agency_id || $visit->assignee_id !== $actor->id) {
+        $isOwner = $membership->role === MembershipRole::Owner;
+        $isAssignee = $visit->assignee_id === $actor->id;
+
+        if ($membership->agency_id !== $visit->agency_id || (! $isOwner && ! $isAssignee)) {
             throw new ApiException(ErrorCodes::VISIT_NOT_ASSIGNEE, 403);
         }
 
