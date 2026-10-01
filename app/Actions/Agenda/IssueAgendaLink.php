@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 class IssueAgendaLink
 {
     /**
-     * @return array{url: string, whatsapp: string}
+     * @return array{url: string, phone: string}
      */
     public function __invoke(Client $client): array
     {
@@ -32,7 +32,7 @@ class IssueAgendaLink
 
         return [
             'url' => config('wwork.frontend_url').'/agenda/'.$client->agenda_token,
-            'whatsapp' => (string) $client->whatsapp,
+            'phone' => (string) $client->phone,
         ];
     }
 }

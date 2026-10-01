@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Clients\CreateClient;
 use App\Actions\Clients\DeleteClient;
 use App\Actions\Clients\ImportClients;
+use App\Enums\ContactChannel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ListClientsRequest;
 use App\Http\Requests\Api\V1\StoreClientRequest;
@@ -53,12 +54,19 @@ class ClientController extends Controller
             }
             $model->name = $name;
         }
-        if ($request->exists('whatsapp')) {
-            $phone = trim($request->string('whatsapp')->toString());
+        if ($request->exists('phone') || $request->exists('whatsapp')) {
+            $phone = trim($request->string($request->exists('phone') ? 'phone' : 'whatsapp')->toString());
             if ($phone === '' || mb_strlen($phone) > 32) {
                 throw new ApiException(ErrorCodes::CLIENT_INVALID, 422);
             }
-            $model->whatsapp = $phone;
+            $model->phone = $phone;
+        }
+        if ($request->exists('contact_channel')) {
+            $channel = ContactChannel::tryFrom($request->string('contact_channel')->toString());
+            if ($channel === null) {
+                throw new ApiException(ErrorCodes::CLIENT_INVALID, 422);
+            }
+            $model->contact_channel = $channel;
         }
         if ($request->exists('email')) {
             $email = trim($request->string('email')->toString());

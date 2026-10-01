@@ -22,7 +22,7 @@ use Illuminate\Support\Str;
 class ClientAccess
 {
     /**
-     * @return array{url: string, whatsapp: string}
+     * @return array{url: string, phone: string}
      */
     public function issue(Client $client): array
     {
@@ -37,7 +37,7 @@ class ClientAccess
 
         return [
             'url' => config('wwork.frontend_url').'/join/'.$client->join_token,
-            'whatsapp' => (string) $client->whatsapp,
+            'phone' => (string) $client->phone,
         ];
     }
 
@@ -50,7 +50,7 @@ class ClientAccess
 
         return [
             'name' => $client->name,
-            'phone' => PhoneNumber::digits($client->whatsapp),
+            'phone' => PhoneNumber::digits($client->phone),
         ];
     }
 
@@ -60,7 +60,7 @@ class ClientAccess
     public function accept(string $token, array $input): User
     {
         $client = $this->client($token);
-        $phone = PhoneNumber::digits($client->whatsapp);
+        $phone = PhoneNumber::digits($client->phone);
 
         if ($phone === '') {
             throw new ApiException(ErrorCodes::CLIENT_JOIN_INVALID, 422);

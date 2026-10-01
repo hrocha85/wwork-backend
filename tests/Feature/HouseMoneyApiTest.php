@@ -178,7 +178,7 @@ class HouseMoneyApiTest extends TestCase
             ->assertJsonPath('paid', true);
 
         $link = $this->postJson('/api/v1/clients/'.$house.'/agenda-link')->assertOk();
-        $link->assertJsonPath('whatsapp', '+447911123456');
+        $link->assertJsonPath('phone', '+447911123456');
         $token = basename((string) $link->json('url'));
 
         $this->postJson('/api/v1/logout')->assertNoContent();
@@ -236,7 +236,7 @@ class HouseMoneyApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'John Smith',
-            'whatsapp' => '+447911123456',
+            'phone' => '+447911123456',
             'address' => $address,
             'lat' => 51.5034,
             'lng' => -0.1276,

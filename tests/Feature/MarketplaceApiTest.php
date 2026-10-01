@@ -59,7 +59,7 @@ class MarketplaceApiTest extends TestCase
             ->assertJsonPath('agency', null);
 
         $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
-        $client = Client::query()->where('whatsapp', '+447700900123')->firstOrFail();
+        $client = Client::query()->where('phone', '+447700900123')->firstOrFail();
         $visit = Visit::query()->create([
             'agency_id' => $client->agency_id,
             'client_id' => $client->id,
@@ -103,7 +103,7 @@ class MarketplaceApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'Novo Cliente',
-            'whatsapp' => '+447911000777',
+            'phone' => '+447911000777',
             'address' => '1 Test Street',
             'lat' => 51.5,
             'lng' => -0.1,

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BookingRequestStatus;
+use App\Enums\ContactChannel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -14,6 +15,7 @@ class BookingRequest extends Model
         'booking_service_id',
         'client_name',
         'client_phone',
+        'client_contact_channel',
         'requested_date',
         'requested_time',
         'status',
@@ -50,6 +52,7 @@ class BookingRequest extends Model
             'proposed_date' => 'date',
             'quote_pence' => 'integer',
             'status' => BookingRequestStatus::class,
+            'client_contact_channel' => ContactChannel::class,
         ];
     }
 

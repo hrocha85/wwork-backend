@@ -18,7 +18,7 @@ return [
         'email' => 'Email',
         'name' => 'Name',
         'client' => 'Client',
-        'whatsapp' => 'WhatsApp',
+        'phone' => 'Phone',
         'address' => 'Address',
         'description' => 'Description',
         'service' => 'Service',

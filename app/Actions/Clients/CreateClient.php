@@ -2,6 +2,7 @@
 
 namespace App\Actions\Clients;
 
+use App\Enums\ContactChannel;
 use App\Models\Client;
 use App\Policies\ClientPolicy;
 use App\Support\AgencyContext;
@@ -12,7 +13,7 @@ use App\Support\RecordActivity;
 class CreateClient
 {
     /**
-     * @param  array{name: string, whatsapp: string, address: string, lat: mixed, lng: mixed, email?: string|null}  $input
+     * @param  array{name: string, phone: string, contact_channel?: string, address: string, lat: mixed, lng: mixed, email?: string|null}  $input
      */
     public function __invoke(array $input): Client
     {
@@ -31,7 +32,8 @@ class CreateClient
             'agency_id' => $membership->agency_id,
             'created_by' => $actor->id,
             'name' => $input['name'],
-            'whatsapp' => $input['whatsapp'],
+            'phone' => $input['phone'],
+            'contact_channel' => ContactChannel::from($input['contact_channel'] ?? ContactChannel::Whatsapp->value),
             'email' => filled($input['email'] ?? null) ? $input['email'] : null,
             'address' => $input['address'],
             'lat' => $input['lat'],

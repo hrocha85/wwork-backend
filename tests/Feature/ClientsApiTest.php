@@ -40,13 +40,13 @@ class ClientsApiTest extends TestCase
 
         $this->postJson('/api/v1/clients', [
             'name' => 'House',
-            'whatsapp' => '+447911123456',
+            'phone' => '+447911123456',
             'address' => '1 Road',
         ])->assertStatus(422)->assertExactJson(['error' => 'client.missing_point']);
 
         $created = $this->postJson('/api/v1/clients', [
             'name' => 'John Smith',
-            'whatsapp' => '+447911123456',
+            'phone' => '+447911123456',
             'address' => '10 Downing Street, London',
             'lat' => 51.5034,
             'lng' => -0.1276,
@@ -79,7 +79,7 @@ class ClientsApiTest extends TestCase
 
         $monday = $this->postJson('/api/v1/clients', [
             'name' => 'Monday House',
-            'whatsapp' => '+447911000001',
+            'phone' => '+447911000001',
             'address' => '1 Monday Street',
             'lat' => 51.5,
             'lng' => -0.1,
@@ -87,7 +87,7 @@ class ClientsApiTest extends TestCase
 
         $tuesday = $this->postJson('/api/v1/clients', [
             'name' => 'Tuesday House',
-            'whatsapp' => '+447911000002',
+            'phone' => '+447911000002',
             'address' => '2 Tuesday Street',
             'lat' => 51.51,
             'lng' => -0.11,
@@ -100,7 +100,7 @@ class ClientsApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'clients')
             ->assertJsonPath('clients.0.name', 'Monday House')
-            ->assertJsonPath('clients.0.whatsapp', '+447911000001')
+            ->assertJsonPath('clients.0.phone', '+447911000001')
             ->assertJsonPath('clients.0.next_visit.date', '2026-09-28')
             ->assertJsonPath('clients.0.next_visit.time', '09:00')
             ->assertJsonPath('clients.0.next_visit.status', 'todo');
@@ -108,7 +108,7 @@ class ClientsApiTest extends TestCase
         $this->getJson('/api/v1/clients/'.$monday)
             ->assertOk()
             ->assertJsonPath('visits.0.price_pence', 8000)
-            ->assertJsonPath('whatsapp', '+447911000001');
+            ->assertJsonPath('phone', '+447911000001');
 
         $this->deleteJson('/api/v1/clients/'.$monday)
             ->assertStatus(409)
@@ -127,7 +127,7 @@ class ClientsApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'Finished',
-            'whatsapp' => '+447911000003',
+            'phone' => '+447911000003',
             'address' => '3 Done Street',
             'lat' => 51.52,
             'lng' => -0.12,
@@ -145,7 +145,7 @@ class ClientsApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'Billed',
-            'whatsapp' => '+447911000004',
+            'phone' => '+447911000004',
             'address' => '4 Bill Street',
             'lat' => 51.53,
             'lng' => -0.13,
@@ -182,8 +182,8 @@ class ClientsApiTest extends TestCase
         ])->assertOk();
 
         $rows = [
-            ['name' => 'Casa Nova', 'whatsapp' => '+447700900777', 'address' => 'Rua Pará 18', 'email' => ''],
-            ['name' => 'A', 'whatsapp' => '', 'address' => '', 'email' => 'nao-e-email'],
+            ['name' => 'Casa Nova', 'phone' => '+447700900777', 'address' => 'Rua Pará 18', 'email' => ''],
+            ['name' => 'A', 'phone' => '', 'address' => '', 'email' => 'nao-e-email'],
         ];
 
         $this->postJson('/api/v1/clients/import', ['commit' => false, 'rows' => $rows])->assertOk()
@@ -191,10 +191,10 @@ class ClientsApiTest extends TestCase
             ->assertJsonPath('counts.invalid', 1)
             ->assertJsonPath('rows.0.needs_pin', true);
 
-        $this->assertFalse(Client::query()->where('whatsapp', '+447700900777')->exists());
+        $this->assertFalse(Client::query()->where('phone', '+447700900777')->exists());
 
         $this->postJson('/api/v1/clients/import', ['commit' => true, 'rows' => $rows])->assertOk();
-        $this->assertTrue(Client::query()->where('whatsapp', '+447700900777')->whereNull('lat')->exists());
+        $this->assertTrue(Client::query()->where('phone', '+447700900777')->whereNull('lat')->exists());
     }
 
     public function test_sheet_import_keeps_a_contact_that_still_needs_an_address(): void
@@ -205,14 +205,14 @@ class ClientsApiTest extends TestCase
         ])->assertOk();
 
         $rows = [
-            ['name' => 'Contato Sem Rua', 'whatsapp' => '+447700900888', 'address' => '', 'email' => ''],
+            ['name' => 'Contato Sem Rua', 'phone' => '+447700900888', 'address' => '', 'email' => ''],
         ];
 
         $this->postJson('/api/v1/clients/import', ['commit' => true, 'rows' => $rows])->assertOk()
             ->assertJsonPath('counts.ok', 1)
             ->assertJsonPath('rows.0.needs_address', true);
 
-        $this->assertTrue(Client::query()->where('whatsapp', '+447700900888')->where('address', '')->exists());
+        $this->assertTrue(Client::query()->where('phone', '+447700900888')->where('address', '')->exists());
     }
 
     public function test_calendar_import_creates_a_visit_only_for_a_known_client(): void
@@ -227,7 +227,7 @@ class ClientsApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'Ana Costa',
-            'whatsapp' => '+447700900123',
+            'phone' => '+447700900123',
             'address' => '10 Downing Street',
             'lat' => 51.5,
             'lng' => -0.1,
@@ -251,7 +251,7 @@ class ClientsApiTest extends TestCase
 
         $created = $this->postJson('/api/v1/clients', [
             'name' => 'Ada House',
-            'whatsapp' => '+447700900123',
+            'phone' => '+447700900123',
             'address' => '1 Road',
             'lat' => 51.5,
             'lng' => -0.1,
@@ -261,12 +261,12 @@ class ClientsApiTest extends TestCase
 
         $this->patchJson('/api/v1/clients/'.$id, [
             'name' => 'Ada Updated',
-            'whatsapp' => '+447700900124',
+            'phone' => '+447700900124',
             'email' => 'ada@example.test',
             'address' => '2 Road',
         ])->assertOk()
             ->assertJsonPath('name', 'Ada Updated')
-            ->assertJsonPath('whatsapp', '+447700900124')
+            ->assertJsonPath('phone', '+447700900124')
             ->assertJsonPath('email', 'ada@example.test')
             ->assertJsonPath('address', '2 Road');
 
@@ -299,7 +299,7 @@ class ClientsApiTest extends TestCase
             'agency_id' => $agency->id,
             'created_by' => $owner->id,
             'name' => 'Foreign House',
-            'whatsapp' => '+447911999999',
+            'phone' => '+447911999999',
             'address' => '9 Other Street',
             'lat' => 51.5,
             'lng' => -0.1,

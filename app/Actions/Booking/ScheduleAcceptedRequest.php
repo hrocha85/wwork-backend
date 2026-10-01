@@ -2,10 +2,11 @@
 
 namespace App\Actions\Booking;
 
+use App\Enums\ContactChannel;
+use App\Enums\VisitStatus;
 use App\Models\BookingRequest;
 use App\Models\Client;
 use App\Models\Visit;
-use App\Enums\VisitStatus;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
@@ -58,7 +59,7 @@ class ScheduleAcceptedRequest
             ->where('agency_id', $agencyId)
             ->get()
             ->first(function (Client $client) use ($digits): bool {
-                return (preg_replace('/\D/', '', $client->whatsapp) ?? '') === $digits && $digits !== '';
+                return (preg_replace('/\D/', '', $client->phone) ?? '') === $digits && $digits !== '';
             });
 
         if ($existing !== null) {
@@ -69,7 +70,8 @@ class ScheduleAcceptedRequest
             'agency_id' => $agencyId,
             'created_by' => $ownerId,
             'name' => $request->client_name,
-            'whatsapp' => $request->client_phone,
+            'phone' => $request->client_phone,
+            'contact_channel' => $request->client_contact_channel ?? ContactChannel::Whatsapp,
             'address' => filled($request->address) ? $request->address : 'A confirmar',
             'lat' => null,
             'lng' => null,

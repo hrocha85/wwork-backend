@@ -70,7 +70,7 @@ class NotificationMailTest extends TestCase
             'date' => '2026-09-28',
             'time' => '09:00',
             'name' => 'Ana Costa',
-            'whatsapp' => '+447700900999',
+            'phone' => '+447700900999',
         ])->assertCreated();
 
         Mail::assertSent(BookingRequestedMail::class, 1);
@@ -85,7 +85,7 @@ class NotificationMailTest extends TestCase
 
         $opened = $this->postJson('/api/v1/book/'.$token.'/quotes', [
             'name' => 'Neide',
-            'whatsapp' => '+447700900998',
+            'phone' => '+447700900998',
             'address' => 'Av pinheiro machado 535',
             'description' => 'A torneira não fecha.',
         ])->assertCreated();
@@ -345,7 +345,7 @@ class NotificationMailTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'John Smith',
-            'whatsapp' => '+447911123456',
+            'phone' => '+447911123456',
             'address' => '10 Downing Street, London',
             'lat' => 51.5034,
             'lng' => -0.1276,

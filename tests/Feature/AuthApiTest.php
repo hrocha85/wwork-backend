@@ -77,6 +77,32 @@ class AuthApiTest extends TestCase
             ->assertExactJson(['error' => 'unauthenticated']);
     }
 
+    public function test_login_field_accepts_email_or_phone_as_the_identifier(): void
+    {
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+        $owner->forceFill(['phone' => '447700900999'])->save();
+
+        $this->postJson('/api/v1/login', [
+            'login' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk()->assertJsonPath('user.email', 'owner@wwork.test');
+
+        $this->postJson('/api/v1/login', [
+            'login' => '+44 7700 900999',
+            'password' => 'demo-seed-test',
+        ])->assertOk()->assertJsonPath('user.email', 'owner@wwork.test');
+
+        $this->postJson('/api/v1/login', [
+            'login' => '12345',
+            'password' => 'demo-seed-test',
+        ])->assertUnauthorized()->assertExactJson(['error' => 'auth.failed']);
+
+        $this->postJson('/api/v1/login', [
+            'login' => 'not-an-identifier',
+            'password' => 'demo-seed-test',
+        ])->assertUnauthorized()->assertExactJson(['error' => 'auth.failed']);
+    }
+
     public function test_register_refuses_without_stripe_and_keeps_domain_errors(): void
     {
         config(['services.stripe.secret' => null]);

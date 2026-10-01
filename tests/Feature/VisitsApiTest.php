@@ -108,7 +108,7 @@ class VisitsApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'visits')
             ->assertJsonPath('visits.0.id', $visitId)
-            ->assertJsonPath('visits.0.client.whatsapp', '+447911123456')
+            ->assertJsonPath('visits.0.client.phone', '+447911123456')
             ->assertJsonPath('visits.0.price_pence', 10000)
             ->assertJsonPath('visits.0.description', 'Deep clean')
             ->assertJsonPath('visits.0.invoiced', false);
@@ -136,7 +136,7 @@ class VisitsApiTest extends TestCase
             ->assertJsonPath('visits.0.id', $visitId)
             ->assertJsonMissingPath('visits.0.price_pence')
             ->assertJsonMissingPath('visits.0.rate')
-            ->assertJsonMissingPath('visits.0.client.whatsapp')
+            ->assertJsonMissingPath('visits.0.client.phone')
             ->assertJsonPath('visits.0.partner_earning_pence', 6000)
             ->assertJsonPath('visits.0.goals.0.text', 'Clean kitchen')
             ->assertJsonPath('visits.0.goals.0.completed', null);
@@ -331,7 +331,7 @@ class VisitsApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'John Smith',
-            'whatsapp' => '+447911123456',
+            'phone' => '+447911123456',
             'address' => '10 Downing Street, London',
             'lat' => 51.5034,
             'lng' => -0.1276,
@@ -358,7 +358,7 @@ class VisitsApiTest extends TestCase
             'agency_id' => $agency->id,
             'created_by' => $owner->id,
             'name' => 'Foreign House',
-            'whatsapp' => '+447911999999',
+            'phone' => '+447911999999',
             'address' => '9 Other Street',
             'lat' => 51.5,
             'lng' => -0.1,

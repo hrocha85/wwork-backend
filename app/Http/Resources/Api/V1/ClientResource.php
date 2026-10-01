@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Enums\ContactChannel;
 use App\Models\Client;
 use App\Models\Visit;
 use App\Policies\ClientPolicy;
@@ -21,7 +22,8 @@ class ClientResource
         return [
             'id' => $client->id,
             'name' => $client->name,
-            'whatsapp' => $client->whatsapp,
+            'phone' => $client->phone,
+            'contact_channel' => $client->contact_channel?->value ?? ContactChannel::Whatsapp->value,
             'address' => $client->address,
             'note' => $client->note,
             'lat' => $client->lat === null ? null : (float) $client->lat,
@@ -82,7 +84,8 @@ class ClientResource
         return [
             'id' => $client->id,
             'name' => $client->name,
-            'whatsapp' => $client->whatsapp,
+            'phone' => $client->phone,
+            'contact_channel' => $client->contact_channel?->value ?? ContactChannel::Whatsapp->value,
             'address' => $client->address,
             'note' => $client->note,
             'lat' => $client->lat === null ? null : (float) $client->lat,
@@ -115,6 +118,7 @@ class ClientResource
         return [
             'id' => $client->id,
             'name' => $client->name,
+            'phone' => $client->phone,
             'address' => $client->address,
             'note' => $client->note,
             'lat' => $client->lat === null ? null : (float) $client->lat,

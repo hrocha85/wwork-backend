@@ -188,7 +188,7 @@ class WworkSchemaSeedTest extends TestCase
             'agency_id' => $agency->id,
             'created_by' => $owner->id,
             'name' => 'House',
-            'whatsapp' => '+447700900123',
+            'phone' => '+447700900123',
             'address' => '1 Test Street, London',
             'lat' => 51.5034,
             'lng' => -0.1276,

@@ -3,6 +3,7 @@
 namespace App\Actions\Booking;
 
 use App\Enums\BookingRequestStatus;
+use App\Enums\ContactChannel;
 use App\Enums\SubscriptionStatus;
 use App\Mail\BookingRequestedMail;
 use App\Models\Agency;
@@ -50,7 +51,8 @@ class BookSlot
                 'agency_id' => $agency->id,
                 'booking_service_id' => $service->id,
                 'client_name' => $input['name'],
-                'client_phone' => $input['whatsapp'],
+                'client_phone' => $input['phone'],
+                'client_contact_channel' => ContactChannel::from($input['contact_channel'] ?? ContactChannel::Whatsapp->value),
                 'requested_date' => $input['date'],
                 'requested_time' => $input['time'],
                 'status' => BookingRequestStatus::Pending,

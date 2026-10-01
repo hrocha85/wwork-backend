@@ -192,7 +192,7 @@ class MailLocaleTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'John Smith',
-            'whatsapp' => '+447911123456',
+            'phone' => '+447911123456',
             'address' => '10 Downing Street, London',
             'lat' => 51.5034,
             'lng' => -0.1276,
