@@ -6,7 +6,7 @@ use App\Enums\SubscriptionStatus;
 use App\Enums\VisitStatus;
 use App\Mail\BookingRequestedMail;
 use App\Mail\InviteAcceptedMail;
-use App\Mail\NoticeMail;
+use App\Mail\OfferEndingMail;
 use App\Mail\OwnerWelcomeMail;
 use App\Mail\PartnerInvited;
 use App\Mail\PasswordChangedMail;
@@ -16,6 +16,7 @@ use App\Mail\QuoteAnsweredMail;
 use App\Mail\SubscriptionStatusMail;
 use App\Mail\VisitAnsweredMail;
 use App\Mail\VisitCancelledMail;
+use App\Mail\VisitConfirmedMail;
 use App\Mail\VisitOfferedMail;
 use App\Models\Agency;
 use App\Models\BookingRequest;
@@ -29,6 +30,7 @@ use App\Models\Visit;
 use App\Services\Stripe\FakeStripeBilling;
 use App\Services\Stripe\StripeBilling;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -143,12 +145,11 @@ class NotificationMailTest extends TestCase
         $this->postJson('/api/v1/logout')->assertNoContent();
         $this->login('owner@wwork.test');
         $this->deleteJson('/api/v1/visits/'.$offered->json('id'))->assertNoContent();
-        Mail::assertSent(VisitCancelledMail::class, function (VisitCancelledMail $mail): bool {
-            return $mail->hasTo('invited@wwork.test') && str_contains($mail->render(), '10 Downing Street');
-        });
-
         $this->deleteJson('/api/v1/visits/'.$second->id)->assertNoContent();
-        Mail::assertSent(VisitCancelledMail::class, 1);
+
+        // O aviso de cancelamento foi retirado do fluxo (commit ab7396f): cancelar
+        // continua funcionando, mas não sai mais e-mail para o parceiro.
+        Mail::assertNotSent(VisitCancelledMail::class);
     }
 
     public function test_reassigning_a_visit_to_the_partner_offers_it_once(): void
@@ -166,7 +167,11 @@ class NotificationMailTest extends TestCase
         Mail::assertSent(VisitOfferedMail::class, 1);
     }
 
-    public function test_stripe_webhooks_mail_the_owner_only_when_the_status_changes(): void
+    /**
+     * O aviso de status da assinatura foi retirado do fluxo (commit ab7396f):
+     * o webhook continua mudando o estado, mas não sai mais e-mail para o dono.
+     */
+    public function test_stripe_webhooks_change_the_status_without_mailing_the_owner(): void
     {
         Mail::fake();
         $subscription = Subscription::query()->firstOrFail();
@@ -176,12 +181,12 @@ class NotificationMailTest extends TestCase
             $this->postJson('/api/v1/stripe/webhook', ['type' => $type, 'data' => ['subscription' => 'sub_demo']])->assertOk();
         }
 
-        Mail::assertSent(SubscriptionStatusMail::class, 2);
-        Mail::assertSent(SubscriptionStatusMail::class, fn (SubscriptionStatusMail $mail): bool => $mail->status === SubscriptionStatus::PastDue && $mail->hasTo('owner@wwork.test'));
-        Mail::assertSent(SubscriptionStatusMail::class, fn (SubscriptionStatusMail $mail): bool => $mail->status === SubscriptionStatus::Active);
+        $this->assertSame(SubscriptionStatus::Active, Subscription::query()->findOrFail($subscription->id)->status);
 
         $this->postJson('/api/v1/stripe/webhook', ['type' => 'customer.subscription.deleted', 'data' => ['subscription' => 'sub_demo']])->assertOk();
-        Mail::assertSent(SubscriptionStatusMail::class, fn (SubscriptionStatusMail $mail): bool => $mail->status === SubscriptionStatus::Cancelled);
+        $this->assertSame(SubscriptionStatus::Cancelled, Subscription::query()->findOrFail($subscription->id)->status);
+
+        Mail::assertNotSent(SubscriptionStatusMail::class);
     }
 
     public function test_accepted_invite_mails_the_owner(): void
@@ -258,6 +263,39 @@ class NotificationMailTest extends TestCase
         Mail::assertSent(PasswordChangedMail::class, fn (PasswordChangedMail $mail): bool => $mail->hasTo('maya@example.com'));
     }
 
+    public function test_owner_welcome_mail_keeps_the_tutorial_and_adds_welcome_and_benefits(): void
+    {
+        foreach (['en', 'pt'] as $locale) {
+            app()->setLocale($locale);
+
+            // Variante do painel: senha temporária (tutorial de primeiro acesso).
+            $panel = (new OwnerWelcomeMail('Maya', 'Maya Ltd', 'maya@example.com', 'temp-pass'))->render();
+
+            // 1. Boas-vindas
+            $this->assertStringContainsString(__('mail.welcome.opening', ['agency' => 'Maya Ltd']), $panel, $locale);
+            // 2. Tutorial de primeiro acesso (textos existentes, preservados)
+            $this->assertStringContainsString(__('mail.welcome.body', ['agency' => 'Maya Ltd']), $panel, $locale);
+            $this->assertStringContainsString(__('mail.welcome.temporary'), $panel, $locale);
+            $this->assertStringContainsString('temp-pass', $panel, $locale);
+            // 3. Benefícios reais da assinatura
+            $this->assertStringContainsString(__('mail.welcome.benefits_title'), $panel, $locale);
+            $this->assertStringContainsString(__('mail.welcome.benefit_agenda'), $panel, $locale);
+            $this->assertStringContainsString(__('mail.welcome.benefit_team'), $panel, $locale);
+            $this->assertStringContainsString(__('mail.welcome.benefit_field'), $panel, $locale);
+            $this->assertStringContainsString(__('mail.welcome.benefit_invoices'), $panel, $locale);
+            // 4. Mensagem final + botão de entrada
+            $this->assertStringContainsString(__('mail.welcome.closing'), $panel, $locale);
+            $this->assertStringContainsString(__('mail.welcome.button'), $panel, $locale);
+
+            // Variante do app: tutorial sem senha temporária.
+            $app = (new OwnerWelcomeMail('Maya', 'Maya Ltd', 'maya@example.com'))->render();
+            $this->assertStringContainsString(__('mail.welcome.next'), $app, $locale);
+            $this->assertStringNotContainsString('temp-pass', $app, $locale);
+        }
+
+        app()->setLocale('en');
+    }
+
     public function test_smtp_failure_keeps_the_request_and_records_mail_failed(): void
     {
         config([
@@ -297,7 +335,7 @@ class NotificationMailTest extends TestCase
         ]);
         $payout = Payout::query()->create(['agency_id' => $agency->id, 'visit_id' => $visit->id, 'user_id' => $partner->id, 'amount_pence' => 2400, 'paid' => true]);
 
-        /** @var list<NoticeMail> $mails */
+        /** @var list<Mailable> $mails */
         $mails = [
             new PartnerInvited($invite, 'https://app.test/invites/abc'),
             new InviteAcceptedMail('New Partner', 'new@wwork.test'),
@@ -313,10 +351,12 @@ class NotificationMailTest extends TestCase
             new VisitAnsweredMail($visit, 'Partner', true),
             new VisitAnsweredMail($visit, 'Partner', false),
             new VisitCancelledMail('Agency', '2026-09-28', '15:00:00', '1 Road'),
+            new VisitConfirmedMail($visit),
             new SubscriptionStatusMail(SubscriptionStatus::PastDue, 'Agency'),
             new SubscriptionStatusMail(SubscriptionStatus::Active, 'Agency'),
             new SubscriptionStatusMail(SubscriptionStatus::Cancelled, 'Agency'),
             new PayoutPaidMail($payout),
+            new OfferEndingMail('Maya', 'WWork Demo Ltd', false, '£29.90', '£49.90', 'September 28, 2026', config('wwork.frontend_url').'/subscription/'),
         ];
 
         foreach (['en', 'pt', 'es', 'pl', 'ro'] as $locale) {

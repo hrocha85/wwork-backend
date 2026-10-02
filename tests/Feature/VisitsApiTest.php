@@ -183,7 +183,7 @@ class VisitsApiTest extends TestCase
         ]);
     }
 
-    public function test_owner_cannot_cancel_a_finished_visit_and_goals_are_required_with_two_partners(): void
+    public function test_owner_cannot_cancel_a_finished_visit_and_instructions_are_optional_with_two_partners(): void
     {
         $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
         $partner = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
@@ -198,6 +198,8 @@ class VisitsApiTest extends TestCase
             'rate' => 40,
         ]);
 
+        // Instruções (goals) opcionais: sem elas o agendamento segue em frente
+        // mesmo com dois convidados na equipe.
         $this->postJson('/api/v1/visits', [
             'client_id' => $client,
             'date' => '2026-09-26',
@@ -206,8 +208,9 @@ class VisitsApiTest extends TestCase
             'assignee_id' => $partner->id,
             'lat' => 51.5,
             'lng' => -0.1,
-        ])->assertStatus(422)->assertExactJson(['error' => 'visit.goals_required']);
+        ])->assertCreated();
 
+        // Com instruções preenchidas continua salvando normalmente.
         $open = $this->postJson('/api/v1/visits', [
             'client_id' => $client,
             'date' => '2026-09-26',

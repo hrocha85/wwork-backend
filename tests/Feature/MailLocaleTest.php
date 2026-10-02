@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Enums\Locale;
+use App\Enums\VisitStatus;
 use App\Mail\PartnerInvited;
 use App\Mail\PasswordChangedMail;
 use App\Mail\VisitAnsweredMail;
+use App\Mail\VisitConfirmedMail;
 use App\Mail\VisitOfferedMail;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\Visit;
 use App\Support\MailNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -120,6 +123,48 @@ class MailLocaleTest extends TestCase
                 && $mail->hasTo('owner@wwork.test')
                 && str_contains($html, 'Job accepted')
                 && ! str_contains($html, 'Serviço aceito');
+        });
+    }
+
+    public function test_client_confirmation_is_written_in_the_clients_language_not_the_owners(): void
+    {
+        Mail::fake();
+
+        // Quem dispara é o dono, em inglês.
+        $owner = $this->user('owner@wwork.test');
+        $owner->forceFill(['locale' => Locale::En])->save();
+
+        // O cliente da semente tem uma conta vinculada: o idioma sai dela,
+        // nunca de quem está apertando o botão.
+        $client = Client::query()->where('phone', '+447700900123')->firstOrFail();
+        $client->forceFill(['email' => 'ana@client.test'])->save();
+
+        $clientAccount = $client->user;
+        $this->assertNotNull($clientAccount, 'O cliente da semente precisa de conta vinculada');
+        $clientAccount->forceFill(['locale' => Locale::Pt])->save();
+
+        $visit = Visit::query()->create([
+            'agency_id' => $owner->membership->agency_id,
+            'client_id' => $client->id,
+            'assignee_id' => $owner->id,
+            'service_date' => '2026-09-28',
+            'service_time' => '09:00:00',
+            'price_pence' => 8000,
+            'lat' => 51.5,
+            'lng' => -0.1,
+            'status' => VisitStatus::Todo,
+        ]);
+
+        $this->login('owner@wwork.test');
+        $this->postJson('/api/v1/visits/'.$visit->id.'/notify-email')->assertOk();
+
+        Mail::assertSent(VisitConfirmedMail::class, function (VisitConfirmedMail $mail): bool {
+            $html = $mail->render();
+
+            return $mail->locale === 'pt'
+                && $mail->hasTo('ana@client.test')
+                && str_contains($html, 'Agendamento confirmado')
+                && ! str_contains($html, 'Booking confirmed');
         });
     }
 

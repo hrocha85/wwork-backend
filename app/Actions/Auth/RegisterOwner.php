@@ -64,8 +64,8 @@ class RegisterOwner
         }
 
         $paymentMethod = (string) ($data['payment_method'] ?? '');
-        $offer = $this->seats->offerFor($billing);
-        ['intro' => $price, 'full' => $full] = $this->seats->offerPrices('GB', PlanCode::Basic, $billing, $offer);
+        $offer = false;
+        ['intro' => $price, 'full' => $full] = $this->seats->offerPrices('GB', PlanCode::Basic, BillingInterval::Monthly, $offer);
 
         try {
             $charge = $this->stripe->subscribeWithOffer(
