@@ -157,14 +157,14 @@ class DemoAgencySeeder extends Seeder
         $user->name = 'Ana Costa';
         $user->save();
 
-        $house = Client::query()->where('agency_id', $agency->id)->where('whatsapp', '+447700900123')->first();
+        $house = Client::query()->where('agency_id', $agency->id)->where('phone', '+447700900123')->first();
 
         if ($house === null) {
             Client::query()->create([
                 'agency_id' => $agency->id,
                 'created_by' => $agency->ownerMembership?->user_id,
                 'name' => 'Ana Costa',
-                'whatsapp' => '+447700900123',
+                'phone' => '+447700900123',
                 'user_id' => $user->id,
                 'address' => '10 Downing Street, London',
                 'lat' => 51.5034,

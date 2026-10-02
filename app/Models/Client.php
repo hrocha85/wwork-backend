@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContactChannel;
 use App\Models\Concerns\HasSyncUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +17,8 @@ class Client extends Model
         'agency_id',
         'created_by',
         'name',
-        'whatsapp',
+        'phone',
+        'contact_channel',
         'email',
         'user_id',
         'avatar_path',
@@ -38,6 +40,7 @@ class Client extends Model
         return [
             'lat' => 'decimal:7',
             'lng' => 'decimal:7',
+            'contact_channel' => ContactChannel::class,
         ];
     }
 

@@ -58,16 +58,9 @@ class CreateVisit
             throw new ApiException(ErrorCodes::VISIT_INVALID_ASSIGNEE, 422);
         }
 
-        $invited = Membership::query()
-            ->where('agency_id', $membership->agency_id)
-            ->where('role', MembershipRole::Invited)
-            ->count();
-
+        // Instruções (goals) são opcionais em qualquer cenário, inclusive com
+        // vários convidados na equipe: quando preenchidas, são salvas abaixo.
         $goals = is_array($input['goals'] ?? null) ? $input['goals'] : [];
-
-        if ($invited > 1 && $goals === []) {
-            throw new ApiException(ErrorCodes::VISIT_GOALS_REQUIRED, 422);
-        }
 
         $recurring = (bool) ($input['is_recurring'] ?? false);
 

@@ -108,7 +108,7 @@ class VisitsApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'visits')
             ->assertJsonPath('visits.0.id', $visitId)
-            ->assertJsonPath('visits.0.client.whatsapp', '+447911123456')
+            ->assertJsonPath('visits.0.client.phone', '+447911123456')
             ->assertJsonPath('visits.0.price_pence', 10000)
             ->assertJsonPath('visits.0.description', 'Deep clean')
             ->assertJsonPath('visits.0.invoiced', false);
@@ -136,7 +136,7 @@ class VisitsApiTest extends TestCase
             ->assertJsonPath('visits.0.id', $visitId)
             ->assertJsonMissingPath('visits.0.price_pence')
             ->assertJsonMissingPath('visits.0.rate')
-            ->assertJsonMissingPath('visits.0.client.whatsapp')
+            ->assertJsonMissingPath('visits.0.client.phone')
             ->assertJsonPath('visits.0.partner_earning_pence', 6000)
             ->assertJsonPath('visits.0.goals.0.text', 'Clean kitchen')
             ->assertJsonPath('visits.0.goals.0.completed', null);
@@ -183,7 +183,7 @@ class VisitsApiTest extends TestCase
         ]);
     }
 
-    public function test_owner_cannot_cancel_a_finished_visit_and_goals_are_required_with_two_partners(): void
+    public function test_owner_cannot_cancel_a_finished_visit_and_instructions_are_optional_with_two_partners(): void
     {
         $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
         $partner = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
@@ -198,6 +198,8 @@ class VisitsApiTest extends TestCase
             'rate' => 40,
         ]);
 
+        // Instruções (goals) opcionais: sem elas o agendamento segue em frente
+        // mesmo com dois convidados na equipe.
         $this->postJson('/api/v1/visits', [
             'client_id' => $client,
             'date' => '2026-09-26',
@@ -206,8 +208,9 @@ class VisitsApiTest extends TestCase
             'assignee_id' => $partner->id,
             'lat' => 51.5,
             'lng' => -0.1,
-        ])->assertStatus(422)->assertExactJson(['error' => 'visit.goals_required']);
+        ])->assertCreated();
 
+        // Com instruções preenchidas continua salvando normalmente.
         $open = $this->postJson('/api/v1/visits', [
             'client_id' => $client,
             'date' => '2026-09-26',
@@ -331,7 +334,7 @@ class VisitsApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'John Smith',
-            'whatsapp' => '+447911123456',
+            'phone' => '+447911123456',
             'address' => '10 Downing Street, London',
             'lat' => 51.5034,
             'lng' => -0.1276,
@@ -358,7 +361,7 @@ class VisitsApiTest extends TestCase
             'agency_id' => $agency->id,
             'created_by' => $owner->id,
             'name' => 'Foreign House',
-            'whatsapp' => '+447911999999',
+            'phone' => '+447911999999',
             'address' => '9 Other Street',
             'lat' => 51.5,
             'lng' => -0.1,

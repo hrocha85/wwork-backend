@@ -2,13 +2,26 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Enums\ContactChannel;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class BookSlotRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('phone') && $this->filled('whatsapp')) {
+            $this->merge(['phone' => $this->input('whatsapp')]);
+        }
+
+        if (! $this->filled('contact_channel')) {
+            $this->merge(['contact_channel' => ContactChannel::Whatsapp->value]);
+        }
     }
 
     /**
@@ -25,7 +38,8 @@ class BookSlotRequest extends FormRequest
             'recurring_days' => ['nullable', 'array'],
             'recurring_days.*' => ['string', 'in:mon,tue,wed,thu,fri,sat,sun'],
             'name' => ['required', 'string', 'min:2', 'max:80'],
-            'whatsapp' => ['required', 'string', 'max:32'],
+            'phone' => ['required', 'string', 'max:32'],
+            'contact_channel' => ['required', Rule::enum(ContactChannel::class)],
         ];
     }
 }

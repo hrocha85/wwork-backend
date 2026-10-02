@@ -63,7 +63,7 @@ class BookingApiTest extends TestCase
             'date' => '2026-09-28',
             'time' => '09:00',
             'name' => 'Cliente novo',
-            'whatsapp' => '+447700900111',
+            'phone' => '+447700900111',
         ])->assertCreated()->assertJsonPath('ok', true);
 
         $this->assertNotEmpty($booked->json('request_id'));
@@ -73,7 +73,7 @@ class BookingApiTest extends TestCase
             'date' => '2026-09-28',
             'time' => '09:00',
             'name' => 'Outro',
-            'whatsapp' => '+447700900112',
+            'phone' => '+447700900112',
         ])->assertStatus(409)->assertExactJson(['error' => 'booking.taken']);
 
         $this->assertDatabaseHas('booking_requests', [
@@ -109,7 +109,7 @@ class BookingApiTest extends TestCase
             'agency_id' => $owner->membership->agency_id,
             'created_by' => $owner->id,
             'name' => 'Casa',
-            'whatsapp' => '+447700900000',
+            'phone' => '+447700900000',
             'address' => '1 Road',
             'lat' => 51.5,
             'lng' => -0.1,
@@ -137,7 +137,7 @@ class BookingApiTest extends TestCase
             'date' => '2026-09-28',
             'time' => '14:00',
             'name' => 'Mais um',
-            'whatsapp' => '+447700900113',
+            'phone' => '+447700900113',
         ])->assertCreated();
 
         $this->postJson('/api/v1/book/'.$token, [
@@ -145,7 +145,7 @@ class BookingApiTest extends TestCase
             'date' => '2026-09-28',
             'time' => '14:00',
             'name' => 'Cheio',
-            'whatsapp' => '+447700900114',
+            'phone' => '+447700900114',
         ])->assertStatus(409);
 
         $this->postJson('/api/v1/booking/requests/'.$booked->json('request_id'), [
@@ -174,7 +174,7 @@ class BookingApiTest extends TestCase
             'date' => '2026-09-28',
             'time' => '09:00',
             'name' => 'Ana Costa',
-            'whatsapp' => '+447700900999',
+            'phone' => '+447700900999',
         ])->assertCreated();
 
         $id = $this->getJson('/api/v1/booking')->json('requests.0.id');
@@ -182,7 +182,7 @@ class BookingApiTest extends TestCase
             ->assertJsonPath('status', 'approved');
 
         $this->assertNotNull($booked->json('request_id'));
-        $this->assertTrue(Client::query()->where('whatsapp', '+447700900999')->exists());
+        $this->assertTrue(Client::query()->where('phone', '+447700900999')->exists());
         $this->assertTrue(Visit::query()->where('price_pence', 8000)->whereDate('service_date', '2026-09-28')->exists());
     }
 
@@ -194,7 +194,7 @@ class BookingApiTest extends TestCase
 
         $opened = $this->postJson('/api/v1/book/'.$token.'/quotes', [
             'name' => 'Neide',
-            'whatsapp' => '+447700900998',
+            'phone' => '+447700900998',
             'address' => 'Av pinheiro machado 535',
             'description' => 'A torneira não fecha.',
         ])->assertCreated();

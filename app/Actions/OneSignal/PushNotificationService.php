@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Visit;
 use App\Services\OneSignalPush;
 use Illuminate\Support\Str;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Única fachada de push do app. Cada gatilho decide os destinatários;
@@ -93,8 +94,8 @@ class PushNotificationService
     }
 
     /**
-     * Gatilho 4 — fim do serviço. Delegate para a ação legada que já trata
-     * o check-out (owner + cliente via player id).
+     * Gatilho 4 — fim do serviço. Delegate para a ação que notifica
+     * o dono (quando outro executou) e o cliente.
      */
     public function finished(Visit $visit, ?int $durationSeconds): void
     {
@@ -102,11 +103,46 @@ class PushNotificationService
     }
 
     /**
+     * Gatilho 5 — o profissional aceitou a solicitação de trabalho.
+     * O destinatário é o empregador (dono da agência da visita); o e-mail
+     * visit.accepted continua saindo pelo MailNotifier no AcceptVisit.
+     */
+    public function accepted(Visit $visit, User $actor): void
+    {
+        $visit->loadMissing(['client', 'agency']);
+
+        $owner = $visit->agency->ownerMembership()->with('user')->first()?->user;
+
+        if ($owner === null || $owner->id === $actor->id) {
+            return;
+        }
+
+        $date = $visit->service_date->locale('en')->isoFormat('LL');
+
+        $this->toUsers(
+            [$owner],
+            'Job accepted',
+            $actor->name.' accepted the job for '.$visit->client->name.' on '.$date.' at '.self::time($visit->service_time),
+            '/calendar',
+            self::key($visit, 'accepted'),
+        );
+    }
+
+    /**
      * @param  list<User>  $users
      */
-    private function toUsers(array $users, string $title, string $body, ?string $path): void
+    private function toUsers(array $users, string $title, string $body, ?string $path, ?string $idempotencyKey = null): void
     {
-        $this->push->toUsers($users, $title, $body, $path, (string) Str::uuid());
+        $this->push->toUsers($users, $title, $body, $path, $idempotencyKey ?? (string) Str::uuid());
+    }
+
+    /**
+     * UUID determinístico por visita+evento: reprocessar o mesmo evento
+     * cai na chave de idempotência do OneSignal e não duplica o push.
+     */
+    private static function key(Visit $visit, string $event): string
+    {
+        return Uuid::uuid5(Uuid::NAMESPACE_URL, 'wwork.visit.'.$visit->id.'.'.$event)->toString();
     }
 
     /**
