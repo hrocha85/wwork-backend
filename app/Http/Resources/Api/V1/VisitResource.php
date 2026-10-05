@@ -231,7 +231,7 @@ class VisitResource
             'id' => $visit->client->id,
             'name' => $visit->client->name,
             'address' => $visit->client->address,
-            'whatsapp' => $visit->client->whatsapp,
+            'phone' => $visit->client->phone,
         ];
 
         $row = [

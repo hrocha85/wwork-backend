@@ -2,6 +2,7 @@
 
 namespace App\Actions\Visits;
 
+use App\Actions\OneSignal\PushNotificationService;
 use App\Enums\MembershipRole;
 use App\Enums\VisitStatus;
 use App\Mail\VisitAnsweredMail;
@@ -41,6 +42,8 @@ class AcceptVisit
         RecordActivity::add($visit->agency_id, $actor->id, 'visit.accepted');
 
         app(MailNotifier::class)->toOwner('visit.accepted', $membership->agency, new VisitAnsweredMail($visit, $actor->name, true), $actor->id);
+
+        app(PushNotificationService::class)->accepted($visit, $actor);
 
         return $visit;
     }

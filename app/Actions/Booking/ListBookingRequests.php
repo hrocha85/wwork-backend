@@ -2,6 +2,7 @@
 
 namespace App\Actions\Booking;
 
+use App\Enums\ContactChannel;
 use App\Enums\MembershipRole;
 use App\Models\Agency;
 use App\Models\BookingRequest;
@@ -49,6 +50,7 @@ class ListBookingRequests
             'id' => $request->id,
             'client_name' => $request->client_name,
             'client_phone' => $request->client_phone,
+            'client_contact_channel' => $request->client_contact_channel?->value ?? ContactChannel::Whatsapp->value,
             'date' => $request->requested_date?->toDateString(),
             'time' => $request->requested_time === null ? null : substr((string) $request->requested_time, 0, 5),
             'service_name' => $request->service?->name,

@@ -31,13 +31,13 @@ class BookingRequestedMail extends NoticeMail
         $details = $this->isQuote()
             ? [
                 __('mail.common.client') => $request->client_name,
-                __('mail.common.whatsapp') => $request->client_phone,
+                __('mail.common.phone') => $request->client_phone,
                 __('mail.common.address') => $request->address,
                 __('mail.common.description') => $request->description,
             ]
             : [
                 __('mail.common.client') => $request->client_name,
-                __('mail.common.whatsapp') => $request->client_phone,
+                __('mail.common.phone') => $request->client_phone,
                 __('mail.common.service') => $request->service?->name,
                 __('mail.common.date') => self::date($request->requested_date),
                 __('mail.common.time') => self::time($request->requested_time),

@@ -3,6 +3,7 @@
 namespace App\Actions\Booking;
 
 use App\Enums\BookingRequestStatus;
+use App\Enums\ContactChannel;
 use App\Enums\SubscriptionStatus;
 use App\Mail\BookingRequestedMail;
 use App\Models\Agency;
@@ -44,7 +45,8 @@ class OpenQuote
                 'agency_id' => $agency->id,
                 'booking_service_id' => null,
                 'client_name' => $input['name'],
-                'client_phone' => $input['whatsapp'],
+                'client_phone' => $input['phone'],
+                'client_contact_channel' => ContactChannel::from($input['contact_channel'] ?? ContactChannel::Whatsapp->value),
                 'kind' => 'quote',
                 'address' => $input['address'],
                 'description' => $input['description'],

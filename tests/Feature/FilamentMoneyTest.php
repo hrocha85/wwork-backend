@@ -64,7 +64,7 @@ class FilamentMoneyTest extends TestCase
             'agency_id' => $agency->id,
             'created_by' => $owner->id,
             'name' => 'Hidden House',
-            'whatsapp' => '+447700900111',
+            'phone' => '+447700900111',
             'address' => 'SECRET-HOUSE-10-DOWNING',
             'lat' => 51.5,
             'lng' => -0.12,

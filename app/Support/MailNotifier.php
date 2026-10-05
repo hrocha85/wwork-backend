@@ -20,19 +20,24 @@ use Illuminate\Support\Facades\Mail;
  */
 class MailNotifier
 {
-    public function toUser(string $type, User $user, Mailable $mail, ?int $agencyId = null, ?int $actorId = null): void
+    /**
+     * @return bool true só quando o envio de fato aconteceu; falso quando o SMTP falhou
+     *              ou quando o destinatário não tem e-mail. Quem decide retry (um comando
+     *              diário, por exemplo) lê este retorno.
+     */
+    public function toUser(string $type, User $user, Mailable $mail, ?int $agencyId = null, ?int $actorId = null): bool
     {
-        $this->send($type, $user->email, self::localeOf($user), $mail, $agencyId, $actorId);
+        return $this->send($type, $user->email, self::localeOf($user), $mail, $agencyId, $actorId);
     }
 
-    public function toOwner(string $type, Agency $agency, Mailable $mail, ?int $actorId = null): void
+    public function toOwner(string $type, Agency $agency, Mailable $mail, ?int $actorId = null): bool
     {
         $owner = self::owner($agency);
         if ($owner === null) {
-            return;
+            return false;
         }
 
-        $this->toUser($type, $owner, $mail, $agency->id, $actorId);
+        return $this->toUser($type, $owner, $mail, $agency->id, $actorId);
     }
 
     /**
@@ -50,13 +55,32 @@ class MailNotifier
         return is_string($stored) ? $stored : null;
     }
 
-    public function send(string $type, string $email, ?string $locale, Mailable $mail, ?int $agencyId = null, ?int $actorId = null): void
+    /**
+     * Idioma que este destinatário vai receber, já validado.
+     *
+     * Serve para formatar algo que entra no e-mail (uma data em Carbon, por exemplo)
+     * exatamente no idioma em que o texto vai sair.
+     */
+    public static function localeFor(User $user): string
+    {
+        return self::supported(self::localeOf($user));
+    }
+
+    public function send(string $type, string $email, ?string $locale, Mailable $mail, ?int $agencyId = null, ?int $actorId = null): bool
     {
         if (! filled($email)) {
-            return;
+            return false;
         }
 
-        DB::afterCommit(fn () => $this->deliver($type, $email, $locale, $mail, $agencyId, $actorId));
+        // Fora de transação (comando, cron) o callback roda aqui mesmo e o retorno
+        // é o resultado real do envio. Dentro de transação ele fica adiado para o
+        // commit, e o retorno é false: nada ainda foi entregue.
+        $delivered = null;
+        DB::afterCommit(function () use (&$delivered, $type, $email, $locale, $mail, $agencyId, $actorId): void {
+            $delivered = $this->deliver($type, $email, $locale, $mail, $agencyId, $actorId);
+        });
+
+        return $delivered ?? false;
     }
 
     public static function owner(Agency $agency): ?User
@@ -64,17 +88,21 @@ class MailNotifier
         return $agency->ownerMembership()->with('user')->first()?->user;
     }
 
-    private function deliver(string $type, string $email, ?string $locale, Mailable $mail, ?int $agencyId, ?int $actorId): void
+    private function deliver(string $type, string $email, ?string $locale, Mailable $mail, ?int $agencyId, ?int $actorId): bool
     {
         $context = ['type' => $type, 'to' => $email, 'agency_id' => $agencyId];
 
         try {
             Mail::to($email)->locale(self::supported($locale))->send($mail);
             Log::channel('mail')->info('mail.sent', $context);
+
+            return true;
         } catch (\Throwable $exception) {
             report($exception);
             Log::channel('mail')->error('mail.failed', $context + ['error' => $exception->getMessage()]);
             RecordActivity::add($agencyId, $actorId, 'mail.failed', ['type' => $type]);
+
+            return false;
         }
     }
 

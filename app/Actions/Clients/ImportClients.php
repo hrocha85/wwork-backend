@@ -33,7 +33,7 @@ class ImportClients
         foreach ($rows as $index => $row) {
             $line = $index + 2;
             $name = trim((string) ($row['name'] ?? ''));
-            $phone = trim((string) ($row['whatsapp'] ?? ''));
+            $phone = trim((string) ($row['phone'] ?? $row['whatsapp'] ?? ''));
             $address = trim((string) ($row['address'] ?? ''));
             $email = trim((string) ($row['email'] ?? ''));
             $digits = preg_replace('/\D/', '', $phone) ?? '';
@@ -58,7 +58,7 @@ class ImportClients
                         'agency_id' => $agencyId,
                         'created_by' => $ownerId,
                         'name' => $name,
-                        'whatsapp' => $phone,
+                        'phone' => $phone,
                         'email' => $email === '' ? null : $email,
                         'address' => $address,
                         'lat' => null,
@@ -107,6 +107,7 @@ class ImportClients
             if ($event['date'] === null) {
                 $invalid++;
                 $report[] = ['status' => 'invalid', 'name' => $event['summary'], 'reason' => 'date'];
+
                 continue;
             }
             $client = $clients->first(function (Client $client) use ($event): bool {
@@ -120,6 +121,7 @@ class ImportClients
             if ($client === null) {
                 $invalid++;
                 $report[] = ['status' => 'invalid', 'name' => $event['summary'], 'reason' => 'phone', 'date' => $event['date'], 'address' => $event['location']];
+
                 continue;
             }
             $ok++;
@@ -160,7 +162,7 @@ class ImportClients
     private function phones(int $agencyId): array
     {
         $known = [];
-        foreach (Client::query()->where('agency_id', $agencyId)->pluck('whatsapp') as $phone) {
+        foreach (Client::query()->where('agency_id', $agencyId)->pluck('phone') as $phone) {
             $digits = preg_replace('/\D/', '', (string) $phone) ?? '';
             if ($digits !== '') {
                 $known[$digits] = true;

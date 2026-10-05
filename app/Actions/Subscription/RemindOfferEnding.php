@@ -8,8 +8,8 @@ use App\Enums\SubscriptionStatus;
 use App\Mail\OfferEndingMail;
 use App\Models\Subscription;
 use App\Services\SeatPlan;
+use App\Support\MailNotifier;
 use App\Support\RecordActivity;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Aviso 30 dias antes da subida do mensal ou da renovação do anual (DMCC Act).
@@ -41,9 +41,11 @@ class RemindOfferEnding
             $next = $subscription->replicate();
             $next->discount_type = AnnualDiscount::None;
             $nextAmount = $this->seats->amount($agency, $next, $subscription->seats);
-            $locale = $owner->locale->value;
 
-            Mail::to($owner->email)->send((new OfferEndingMail(
+            // Mesmo idioma em que o e-mail vai sair: a data precisa casar com o texto.
+            $locale = MailNotifier::localeFor($owner);
+
+            $delivered = app(MailNotifier::class)->toUser('subscription.offer_reminded', $owner, new OfferEndingMail(
                 ownerName: $owner->name,
                 agencyName: $agency->name,
                 annual: $subscription->billing === BillingInterval::Annual,
@@ -51,7 +53,12 @@ class RemindOfferEnding
                 next: $this->money($nextAmount, $subscription->currency),
                 date: $subscription->offer_ends_at->timezone($agency->timezone)->locale($locale)->isoFormat('LL'),
                 manageUrl: config('wwork.frontend_url').'/subscription/',
-            ))->locale($locale));
+            ), $agency->id);
+
+            if (! $delivered) {
+                // SMTP fora do ar: sem marcar, o comando tenta de novo no dia seguinte.
+                continue;
+            }
 
             $subscription->offer_reminded_at = now();
             $subscription->save();
