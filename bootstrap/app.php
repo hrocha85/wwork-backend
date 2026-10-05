@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(null);
         $middleware->statefulApi();
         // SPA em outra porta não lê o cookie XSRF-TOKEN. Login/API usam JSON
         // (e Bearer); SameSite=Lax já impede CSRF cookie em POST cross-site.

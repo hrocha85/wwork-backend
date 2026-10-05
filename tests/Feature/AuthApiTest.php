@@ -77,6 +77,21 @@ class AuthApiTest extends TestCase
             ->assertExactJson(['error' => 'unauthenticated']);
     }
 
+    public function test_unauthenticated_api_request_without_json_accept_is_401(): void
+    {
+        $this->get('/api/v1/team/1/avatar')
+            ->assertUnauthorized()
+            ->assertExactJson(['error' => 'unauthenticated']);
+
+        $this->get('/api/v1/visits.ics?from=2026-10-01&to=2026-10-07')
+            ->assertUnauthorized()
+            ->assertExactJson(['error' => 'unauthenticated']);
+
+        $this->get('/api/v1/me/avatar')
+            ->assertUnauthorized()
+            ->assertExactJson(['error' => 'unauthenticated']);
+    }
+
     public function test_register_refuses_without_stripe_and_keeps_domain_errors(): void
     {
         config(['services.stripe.secret' => null]);

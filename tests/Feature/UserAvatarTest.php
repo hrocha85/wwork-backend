@@ -78,6 +78,29 @@ class UserAvatarTest extends TestCase
         $this->get('/api/v1/team/999999/avatar')->assertNotFound();
     }
 
+    public function test_owner_reads_photos_with_the_bearer_token_only(): void
+    {
+        $invited = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
+
+        $path = 'users/'.$invited->id.'/avatar-test.jpg';
+        Storage::disk('local')->put($path, 'fake-image-bytes');
+        $invited->forceFill(['avatar_path' => $path])->save();
+
+        $login = $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $token = $login->json('token');
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
+
+        $this->get('/api/v1/team/'.$invited->id.'/avatar')->assertUnauthorized();
+
+        $this->withToken($token)->get('/api/v1/team/'.$invited->id.'/avatar')->assertOk();
+        $this->withToken($token)->get('/api/v1/me/avatar')->assertNotFound();
+    }
+
     public function test_rejects_files_that_are_not_photos(): void
     {
         $this->postJson('/api/v1/login', [

@@ -61,11 +61,25 @@ class LocationApiTest extends TestCase
 
         $this->getJson('/api/v1/team/locations')
             ->assertOk()
+            ->assertJsonStructure([
+                'locations' => [[
+                    'user_id', 'name', 'has_avatar', 'lat', 'lng', 'at', 'self', 'status', 'since',
+                ]],
+            ])
             ->assertJsonPath('locations.0.user_id', $owner->id)
             ->assertJsonPath('locations.0.name', $owner->name)
             ->assertJsonPath('locations.0.lat', 51.5074)
             ->assertJsonPath('locations.0.lng', -0.1278)
-            ->assertJsonPath('locations.0.self', true);
+            ->assertJsonPath('locations.0.self', true)
+            ->assertJsonPath('locations.0.has_avatar', false)
+            ->assertJsonPath('locations.0.status', 'online')
+            ->assertJsonPath('locations.0.since', null);
+
+        $owner->forceFill(['avatar_path' => 'users/'.$owner->id.'/avatar-test.jpg'])->save();
+
+        $this->getJson('/api/v1/team/locations')
+            ->assertOk()
+            ->assertJsonPath('locations.0.has_avatar', true);
 
         $this->postJson('/api/v1/logout')->assertNoContent();
     }
