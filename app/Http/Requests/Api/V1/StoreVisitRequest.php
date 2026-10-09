@@ -47,14 +47,14 @@ class StoreVisitRequest extends FormRequest
             $tz = $membership?->agency?->timezone ?? 'UTC';
             $now = Carbon::now($tz);
             $today = $now->format('Y-m-d');
-            $nowTime = $now->format('H:i');
+            $minTime = $now->copy()->addHour()->format('H:i');
 
             $date = $this->input('date');
             $time = $this->input('time');
 
             if ($date && $date < $today) {
                 $validator->errors()->add('date', 'visit.past_date');
-            } elseif ($date && $time && $date === $today && $time <= $nowTime) {
+            } elseif ($date && $time && $date === $today && $time < $minTime) {
                 $validator->errors()->add('time', 'visit.past_time');
             }
         });
