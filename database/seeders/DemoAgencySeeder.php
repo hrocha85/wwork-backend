@@ -52,7 +52,7 @@ class DemoAgencySeeder extends Seeder
 
         $agency = Agency::query()->create([
             'name' => 'Demo Cleaning',
-            'timezone' => 'Europe/London',
+            'timezone' => 'America/Sao_Paulo',
             'currency' => 'GBP',
             'country' => 'GB',
             'invoice_region' => 'GB',
