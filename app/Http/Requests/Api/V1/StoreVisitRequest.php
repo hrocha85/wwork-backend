@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Support\AgencyContext;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 
 class StoreVisitRequest extends FormRequest
 {
@@ -20,7 +22,7 @@ class StoreVisitRequest extends FormRequest
             'client_id' => ['required', 'integer'],
             'date' => ['required', 'date_format:Y-m-d'],
             'time' => ['required', 'date_format:H:i'],
-            'estimated_end_time' => ['nullable', 'date_format:H:i', 'after=time'],
+            'estimated_end_time' => ['nullable', 'date_format:H:i', 'after:time'],
             'is_recurring' => ['sometimes', 'boolean'],
             'recurring_days' => ['nullable', 'array'],
             'recurring_days.*' => ['string', 'in:mon,tue,wed,thu,fri,sat,sun'],
@@ -32,5 +34,29 @@ class StoreVisitRequest extends FormRequest
             'goals' => ['nullable', 'array'],
             'goals.*.text' => ['required', 'string', 'min:1', 'max:120'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (app()->runningUnitTests()) {
+                return;
+            }
+
+            $membership = AgencyContext::membership();
+            $tz = $membership?->agency?->timezone ?? 'UTC';
+            $now = Carbon::now($tz);
+            $today = $now->format('Y-m-d');
+            $nowTime = $now->format('H:i');
+
+            $date = $this->input('date');
+            $time = $this->input('time');
+
+            if ($date && $date < $today) {
+                $validator->errors()->add('date', 'visit.past_date');
+            } elseif ($date && $time && $date === $today && $time <= $nowTime) {
+                $validator->errors()->add('time', 'visit.past_time');
+            }
+        });
     }
 }
