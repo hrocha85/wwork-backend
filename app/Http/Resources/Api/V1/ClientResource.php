@@ -93,7 +93,7 @@ class ClientResource
                 'service_date' => $invoice->lines->min(fn (InvoiceLine $line) => $line->service_date->toDateString()),
                 'total_pence' => $invoice->total_pence,
                 'status' => $invoice->status->value,
-                'pdf_url' => $invoice->pdf_path ? route('invoices.client.pdf', ['invoice' => $invoice->id]) : null,
+                'pdf_url' => $invoice->pdf_path ? route('invoices.pdf', ['invoice' => $invoice->id]) : null,
             ])
             ->values()
             ->all();
@@ -103,6 +103,7 @@ class ClientResource
             'name' => $client->name,
             'phone' => $client->phone,
             'contact_channel' => $client->contact_channel?->value ?? ContactChannel::Whatsapp->value,
+            'email' => $client->email,
             'address' => $client->address,
             'note' => $client->note,
             'lat' => $client->lat === null ? null : (float) $client->lat,
@@ -114,7 +115,7 @@ class ClientResource
                     'date' => $visit->service_date->toDateString(),
                     'time' => self::clock($visit),
                     'status' => $visit->status->value,
-                    'assignee_name' => $visit->assignee->name,
+                    'assignee_name' => $visit->assignee?->name ?? '',
                     'price_pence' => $visit->price_pence,
                 ])
                 ->values()
@@ -146,7 +147,7 @@ class ClientResource
                 'date' => $next->service_date->toDateString(),
                 'time' => self::clock($next),
                 'status' => $next->status->value,
-                'assignee_name' => $next->assignee->name,
+                'assignee_name' => $next->assignee?->name ?? '',
             ],
         ];
     }
