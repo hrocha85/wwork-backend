@@ -32,7 +32,7 @@ class MeController extends Controller
 
         $user = $updateLocale($user, $request->string('locale')->toString());
 
-        return response()->json(AuthSessionResource::profile($user));
+        return response()->json(AuthSessionResource::me($user));
     }
 
     public function avatar(Request $request, StoreUserAvatar $store): JsonResponse

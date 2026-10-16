@@ -54,10 +54,6 @@ class RegisterOwner
             throw new ApiException(ErrorCodes::REGISTER_EMAIL_TAKEN, 422);
         }
 
-        if (! $this->stripe->available()) {
-            throw new ApiException(ErrorCodes::REGISTER_PAYMENT_UNAVAILABLE, 503);
-        }
-
         $billing = BillingInterval::tryFrom((string) ($data['billing'] ?? BillingInterval::Monthly->value));
         if ($billing === null) {
             throw new ApiException(ErrorCodes::SUBSCRIPTION_INVALID_PLAN, 422);
@@ -67,23 +63,31 @@ class RegisterOwner
         $offer = false;
         ['intro' => $price, 'full' => $full] = $this->seats->offerPrices('GB', PlanCode::Basic, BillingInterval::Monthly, $offer);
 
-        try {
-            $charge = $this->stripe->subscribeWithOffer(
-                $paymentMethod,
-                $this->seats->stripePrice($price),
-                $offer ? $this->seats->stripePrice($full) : null,
-                $billing,
-                ['country' => 'GB', 'trade' => $trade->value],
-            );
-        } catch (\Throwable) {
-            throw new ApiException(ErrorCodes::REGISTER_PAYMENT_FAILED, 422);
+        $charge = null;
+        if ($paymentMethod !== '') {
+            if ($this->stripe->available()) {
+                try {
+                    $charge = $this->stripe->subscribeBasic(
+                        $paymentMethod,
+                        (string) ($price->stripe_price_id ?? PlanCode::Basic->value),
+                        ['country' => 'GB', 'trade' => $trade->value],
+                    );
+                } catch (\Throwable) {
+                    throw new ApiException(ErrorCodes::REGISTER_PAYMENT_FAILED, 422);
+                }
+            }
         }
 
-        $user = DB::transaction(function () use ($data, $locale, $trade, $price, $charge, $billing, $offer): User {
+        $currency = strtoupper((string) ($data['currency'] ?? ''));
+        if (! in_array($currency, ['BRL', 'GBP', 'EUR', 'USD', 'PLN', 'RON'], true)) {
+            $currency = $price->currency;
+        }
+
+        $user = DB::transaction(function () use ($data, $locale, $trade, $price, $charge, $billing, $offer, $currency): User {
             $agency = Agency::query()->create([
                 'name' => $data['agency_name'],
                 'timezone' => 'Europe/London',
-                'currency' => $price->currency,
+                'currency' => $currency,
                 'country' => 'GB',
                 'invoice_region' => 'GB',
                 'trade' => $trade,
@@ -106,20 +110,31 @@ class RegisterOwner
                 'role' => MembershipRole::Owner,
             ]);
 
+            $planModel = (string) ($data['plan_model'] ?? 'paid');
+            if ($planModel === 'free') {
+                $subscriptionStatus = SubscriptionStatus::Free;
+                $stripeStatus = 'free';
+                $amountMinor = 0;
+            } else {
+                $subscriptionStatus = $charge !== null ? SubscriptionStatus::Active : SubscriptionStatus::Trial;
+                $stripeStatus = $charge !== null ? 'active' : 'trialing';
+                $amountMinor = $price->amount_minor;
+            }
+
             Subscription::query()->create([
                 'agency_id' => $agency->id,
                 'plan' => PlanCode::Basic,
-                'status' => SubscriptionStatus::Active,
+                'status' => $subscriptionStatus,
                 'seats' => 1,
-                'amount_minor' => $price->amount_minor,
+                'amount_minor' => $amountMinor,
                 'currency' => $price->currency,
                 'billing' => $billing,
                 'discount_type' => $offer ? AnnualDiscount::Launch : AnnualDiscount::None,
-                'offer_ends_at' => $charge->offerEndsAt !== null ? Carbon::parse($charge->offerEndsAt) : null,
-                'stripe_id' => $charge->subscriptionId,
+                'offer_ends_at' => $charge?->offerEndsAt !== null ? Carbon::parse($charge->offerEndsAt) : null,
+                'stripe_id' => $charge?->subscriptionId,
                 'stripe_price_id' => $price->stripe_price_id,
-                'stripe_schedule_id' => $charge->scheduleId,
-                'stripe_status' => 'active',
+                'stripe_schedule_id' => $charge?->scheduleId,
+                'stripe_status' => $stripeStatus,
             ]);
 
             RecordActivity::add($agency->id, $owner->id, 'auth.registered');

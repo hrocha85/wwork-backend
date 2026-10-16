@@ -19,5 +19,7 @@ final class StripeResult
         public ?string $cancelAt = null,
         public array $invoices = [],
         public bool $hasMore = false,
+        public ?string $scheduleId = null,
+        public ?string $offerEndsAt = null,
     ) {}
 }
