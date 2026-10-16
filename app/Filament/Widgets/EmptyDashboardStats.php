@@ -16,6 +16,8 @@ use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
 
 class EmptyDashboardStats extends StatsOverviewWidget
 {
@@ -227,15 +229,24 @@ class EmptyDashboardStats extends StatsOverviewWidget
 
     private function endingSoon(): string
     {
-        $soon = now()->addDays(30);
+        try {
+            $soon = now()->addDays(30);
 
-        return (string) Subscription::query()
-            ->where(function (Builder $query) use ($soon): void {
-                $query->where(fn (Builder $query): Builder => $query->whereNotNull('cancel_at')->where('cancel_at', '<=', $soon))
-                    ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('complimentary_until')->where('complimentary_until', '<=', $soon))
-                    ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('paid_offline_until')->where('paid_offline_until', '<=', $soon));
-            })
-            ->count();
+            return (string) Subscription::query()
+                ->where(function (Builder $query) use ($soon): void {
+                    $query->where(fn (Builder $query): Builder => $query->whereNotNull('cancel_at')->where('cancel_at', '<=', $soon))
+                        ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('complimentary_until')->where('complimentary_until', '<=', $soon))
+                        ->orWhere(fn (Builder $query): Builder => $query->whereNotNull('paid_offline_until')->where('paid_offline_until', '<=', $soon));
+                })
+                ->count();
+        } catch (QueryException $e) {
+            Log::critical("Filament Dashboard [endingSoon] falha de consulta / schema: {$e->getMessage()}", [
+                'sql' => $e->getSql(),
+                'bindings' => $e->getBindings(),
+            ]);
+
+            return '⚠️ Erro de schema';
+        }
     }
 
     private function atCeiling(): string
