@@ -17,6 +17,7 @@ class UpdateInvoiceDetailsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'currency' => ['nullable', 'string', 'size:3'],
             'legal_address' => ['nullable', 'string'],
             'phone' => ['nullable', 'string'],
             'payment_method' => ['nullable', 'string'],

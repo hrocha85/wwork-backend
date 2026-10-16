@@ -130,7 +130,7 @@ class CreateVisit
             app(MailNotifier::class)->toUser('visit.offered', $assignee->user, new VisitOfferedMail($visit), $membership->agency_id, $actor->id);
         }
 
-        app(PushNotificationService::class)->created($visit);
+        defer(fn () => app(PushNotificationService::class)->created($visit));
 
         return $visit->fresh(['assignee']);
     }

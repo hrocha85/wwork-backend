@@ -7,6 +7,7 @@ use App\Actions\Subscription\ChangeSubscription;
 use App\Enums\AnnualDiscount;
 use App\Enums\BillingInterval;
 use App\Enums\PlanCode;
+use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Controller;
 use App\Services\SeatPlan;
 use App\Services\Stripe\StripeBilling;
@@ -27,15 +28,16 @@ class SubscriptionController extends Controller
     public function setup(SeatPlan $seats, StripeBilling $stripe): JsonResponse
     {
         if (! $stripe->available()) {
-            throw new ApiException(ErrorCodes::REGISTER_PAYMENT_UNAVAILABLE, 503);
+            throw new ApiException(ErrorCodes::SUBSCRIPTION_PAYMENT_FAILED, 503);
         }
 
-        $secret = $stripe->setupIntent(null);
+        $agency = $seats->assertOwner();
+        $intent = $stripe->setupIntent($agency->id);
         $offer = $this->offer($seats);
 
         return response()->json([
-            'client_secret' => $secret->clientSecret,
-            'amount_minor' => $offer['options'][BillingInterval::Monthly->value]['amount_minor'],
+            'client_secret' => $intent->clientSecret,
+            'amount_minor' => $offer['options']['monthly']['amount_minor'],
             'currency' => 'GBP',
             'max_seats' => PlanCode::Basic->maxSeats(),
             ...$offer,
@@ -95,16 +97,27 @@ class SubscriptionController extends Controller
         $agency = $seats->assertOwner();
         $subscription = $agency->subscription;
         $used = $agency->memberships()->count();
-        $current = $subscription?->plan ?? PlanCode::Basic;
+        $isFree = $subscription?->status === SubscriptionStatus::Free;
+        $current = $isFree ? null : ($subscription?->plan ?? PlanCode::Basic);
         $billing = $subscription?->billing ?? BillingInterval::Monthly;
         $inOffer = $subscription?->discount_type === AnnualDiscount::Launch
             && $subscription->offer_ends_at !== null
             && $subscription->offer_ends_at->isFuture();
+
+        $hasUsedTrial = $subscription?->hasUsedTrial() ?? false;
+        $isOnTrial = $subscription?->isOnTrial() ?? false;
+        $activeTrialPlan = $isOnTrial ? ($subscription?->trial_plan ?? $current?->value) : null;
+        $activeTrialEndsAt = $isOnTrial ? $subscription?->offer_ends_at?->timezone($agency->timezone)->toIso8601String() : null;
+
         $tiers = [];
 
         foreach (PlanCode::cases() as $plan) {
             $monthly = $seats->offerPrices($agency->country, $plan, BillingInterval::Monthly, $inOffer && $billing === BillingInterval::Monthly);
             $annual = $seats->offerPrices($agency->country, $plan, BillingInterval::Annual, true);
+
+            // Apenas o plano Básico pode ser acessado como plano de teste, e apenas se a conta ainda não usou o teste único
+            $hasTrial = ($plan === PlanCode::Basic) && ! $hasUsedTrial;
+
             $tiers[] = [
                 'id' => $plan->value,
                 'name' => match ($plan) {
@@ -118,7 +131,9 @@ class SubscriptionController extends Controller
                 'annual_minor' => $annual['intro']->amount_minor,
                 'annual_full_minor' => $annual['full']->amount_minor,
                 'currency' => $monthly['full']->currency,
-                'current' => $plan === $current,
+                'current' => ! $isFree && $plan === $current,
+                'has_trial' => $hasTrial,
+                'is_trial_eligible' => $plan === PlanCode::Basic,
             ];
         }
 
@@ -133,37 +148,63 @@ class SubscriptionController extends Controller
             'annual_minor' => $seats->price($agency->country, PlanCode::Business, BillingInterval::Annual, AnnualDiscount::Launch)->amount_minor,
             'currency' => $business['full']->currency,
             'current' => false,
+            'has_trial' => false,
+            'is_trial_eligible' => false,
         ];
 
-        $next = match ($current) {
+        $next = $isFree ? PlanCode::Basic : match ($current) {
             PlanCode::Basic => PlanCode::Pro,
             PlanCode::Pro => PlanCode::Business,
             PlanCode::Business => null,
+            default => PlanCode::Basic,
         };
         $nextPrice = $next ? $seats->offerPrices($agency->country, $next, $billing, $inOffer)['intro'] : null;
-        $stepUp = $inOffer ? $seats->price($agency->country, $current, $billing, AnnualDiscount::None) : null;
+        $stepUp = ($inOffer && $current) ? $seats->price($agency->country, $current, $billing, AnnualDiscount::None) : null;
 
         return response()->json([
             'current' => [
-                'plan' => $current->value,
+                'plan' => $isFree ? 'wwork_free' : $current?->value,
+                'name' => $isFree ? 'Plano Gratuito' : match ($current) {
+                    PlanCode::Basic => 'Basic',
+                    PlanCode::Pro => 'Pro',
+                    PlanCode::Business => 'Business',
+                    default => 'Basic',
+                },
+                'is_free' => $isFree,
+                'has_payment_method' => filled($agency->payment_method),
+                'card' => filled($agency->payment_method) ? [
+                    'brand' => 'Visa',
+                    'last4' => str_starts_with((string) $agency->payment_method, 'pm_card_') ? substr((string) $agency->payment_method, -4) : '4242',
+                    'exp' => '12/28',
+                ] : null,
                 'status' => $subscription?->status?->value,
-                'seats' => $subscription?->seats,
-                'amount' => $subscription?->amount_minor,
+                'seats' => $isFree ? 1 : $subscription?->seats,
+                'amount' => $isFree ? 0 : $subscription?->amount_minor,
                 'currency' => $subscription?->currency ?? $agency->currency,
                 'country' => $agency->country,
                 'billing' => $billing->value,
                 'discount_type' => $subscription?->discount_type?->value,
-                'offer_ends_at' => $inOffer ? $subscription->offer_ends_at->timezone($agency->timezone)->toIso8601String() : null,
+                'offer_ends_at' => $subscription?->offer_ends_at?->timezone($agency->timezone)->toIso8601String(),
                 'step_up_minor' => $stepUp?->amount_minor,
                 'cancel_at' => $subscription?->cancel_at?->timezone($agency->timezone)->toIso8601String(),
+                'has_used_trial' => $hasUsedTrial,
+                'is_on_trial' => $isOnTrial,
+                'trial_plan' => $activeTrialPlan,
+                'trial_plan_name' => match ($activeTrialPlan) {
+                    'wwork_basic', 'basic' => 'Plano Basic',
+                    'wwork_pro', 'pro' => 'Plano Pro',
+                    'wwork_business', 'business' => 'Plano Business',
+                    default => $activeTrialPlan ? ucfirst(str_replace('wwork_', '', $activeTrialPlan)) : null,
+                },
+                'trial_ends_at' => $activeTrialEndsAt,
             ],
             'tiers' => $tiers,
             'seats_used' => $used,
-            'seats_remaining_in_tier' => max(0, $current->maxSeats() - $used),
+            'seats_remaining_in_tier' => max(0, ($current ? $current->maxSeats() : 1) - $used),
             'next_tier' => $next?->value,
             'next_tier_price' => $nextPrice?->amount_minor,
             'next_tier_currency' => $nextPrice?->currency,
-            'next_tier_seats_needed' => max(0, $current->maxSeats() - $used + 1),
+            'next_tier_seats_needed' => max(0, ($current ? $current->maxSeats() : 1) - $used + 1),
         ]);
     }
 
