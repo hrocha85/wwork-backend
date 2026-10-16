@@ -49,10 +49,7 @@ class OneSignalPush
         ], fn ($value) => $value !== null);
 
         try {
-            $response = Http::withHeaders(['Authorization' => 'Key '.config('wwork.onesignal_rest_key')])
-                ->acceptJson()
-                ->timeout(10)
-                ->post('https://api.onesignal.com/notifications', $payload);
+            $response = $this->client()->post('https://api.onesignal.com/notifications', $payload);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -91,10 +88,7 @@ class OneSignalPush
         ], fn ($value) => $value !== null);
 
         try {
-            $response = Http::withHeaders(['Authorization' => 'Key '.config('wwork.onesignal_rest_key')])
-                ->acceptJson()
-                ->timeout(10)
-                ->post(self::ENDPOINT, $payload);
+            $response = $this->client()->post(self::ENDPOINT, $payload);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -114,5 +108,17 @@ class OneSignalPush
         }
 
         return $result;
+    }
+    private function client(): \Illuminate\Http\Client\PendingRequest
+    {
+        $client = Http::withHeaders(['Authorization' => 'Key '.config('wwork.onesignal_rest_key')])
+            ->acceptJson()
+            ->timeout(5);
+
+        if (! app()->isProduction()) {
+            $client = $client->withoutVerifying();
+        }
+
+        return $client;
     }
 }

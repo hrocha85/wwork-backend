@@ -138,6 +138,12 @@ final class ErrorCodes
 
     public const REGISTER_PAYMENT_FAILED = 'register.payment_failed';
 
+    public const TRIAL_EXPIRED = 'trial.expired';
+
+    public const PLAN_UPGRADE_REQUIRED = 'plan.upgrade_required';
+
+    public const TEAM_ACCESS_SUSPENDED = 'team.access_suspended';
+
     public const SUBSCRIPTION_PAST_DUE = 'subscription.past_due';
 
     public const SUBSCRIPTION_INACTIVE = 'subscription.inactive';

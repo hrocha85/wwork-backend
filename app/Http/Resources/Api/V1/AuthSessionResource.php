@@ -80,6 +80,7 @@ class AuthSessionResource
             'seats' => $subscription?->seats,
             'amount' => $subscription?->amount_minor,
             'cancel_at' => self::iso($subscription?->cancel_at, $agency->timezone),
+            'offer_ends_at' => self::iso($subscription?->offer_ends_at, $agency->timezone),
         ];
 
         return [
@@ -87,6 +88,20 @@ class AuthSessionResource
             'agency' => $agencyPayload,
             'team_count' => $agency->memberships()->count(),
             'max_seats' => $subscription?->plan?->maxSeats(),
+            'plan_mode' => [
+                'is_paid' => $agency->isPaidMode(),
+                'can_schedule' => $agency->isPaidMode(),
+                'can_invoice' => $agency->isPaidMode(),
+                'can_manage_team' => $agency->isPaidMode(),
+                'is_collaborator_suspended' => $user->membership?->role === MembershipRole::Invited && $agency->isFreeMode(),
+            ],
+            'trial' => [
+                'is_trial' => ! $agency->hasActiveSubscription(),
+                'has_expired' => $agency->isTrialExpired(),
+                'days_remaining' => $agency->trialDaysRemaining(),
+                'trial_ends_at' => self::iso($agency->trialEndsAt(), $agency->timezone),
+                'can_create' => $agency->canCreateRecords(),
+            ],
         ];
     }
 
@@ -196,3 +211,5 @@ class AuthSessionResource
         return Carbon::parse($moment)->timezone($timezone)->toIso8601String();
     }
 }
+
+

@@ -28,6 +28,8 @@ class RegisterRequest extends FormRequest
             'payment_method' => ['nullable', 'string'],
             'billing' => ['nullable', 'string'],
             'terms_accepted' => ['nullable', 'boolean'],
+            'plan_model' => ['nullable', 'string', 'in:paid,free'],
+            'currency' => ['nullable', 'string', 'in:BRL,GBP,EUR,USD,PLN,RON'],
         ];
     }
 }

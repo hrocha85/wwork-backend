@@ -33,7 +33,7 @@ class BookSlotRequest extends FormRequest
             'service_id' => ['required', 'integer'],
             'date' => ['required', 'date_format:Y-m-d'],
             'time' => ['required', 'date_format:H:i'],
-            'estimated_end_time' => ['nullable', 'date_format:H:i', 'after=time'],
+            'estimated_end_time' => ['nullable', 'date_format:H:i', 'after:time'],
             'is_recurring' => ['sometimes', 'boolean'],
             'recurring_days' => ['nullable', 'array'],
             'recurring_days.*' => ['string', 'in:mon,tue,wed,thu,fri,sat,sun'],

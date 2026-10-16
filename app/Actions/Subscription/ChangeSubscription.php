@@ -31,10 +31,32 @@ class ChangeSubscription
             throw new ApiException(ErrorCodes::SUBSCRIPTION_FORBIDDEN, 403);
         }
 
-        $when = now()->addMonth();
+        // Se estiver dentro de período promocional/trial de 30 dias, aproveita até o fim do período de teste
+        if ($subscription->offer_ends_at !== null && $subscription->offer_ends_at->isFuture()) {
+            $when = $subscription->offer_ends_at;
+        } elseif ($subscription->status === SubscriptionStatus::Trial) {
+            $when = $agency->trialEndsAt();
+        } else {
+            $when = now()->addMonth();
+        }
+
+        // Garante que o teste da conta é marcado como consumido, impedindo novo teste grátis futuro após cancelamento
+        if ($subscription->status === SubscriptionStatus::Trial || $subscription->offer_ends_at !== null) {
+            if ($subscription->trial_consumed_at === null) {
+                $subscription->trial_consumed_at = now();
+                $subscription->trial_plan = $subscription->plan->value;
+            }
+        }
+
         if ($subscription->stripe_id && $this->stripe->available()) {
-            $result = $this->stripe->cancelAtPeriodEnd($subscription->stripe_id);
-            $when = Carbon::parse($result->cancelAt);
+            try {
+                $result = $this->stripe->cancelAtPeriodEnd($subscription->stripe_id);
+                if (! empty($result->cancelAt)) {
+                    $when = Carbon::parse($result->cancelAt);
+                }
+            } catch (\Throwable) {
+                // continua com data local
+            }
         }
         $subscription->cancel_at = $when;
         $subscription->save();
@@ -84,7 +106,9 @@ class ChangeSubscription
         $subscription = $agency->subscription;
         $next = PlanCode::tryFrom($plan);
         $interval = BillingInterval::tryFrom($billing) ?? BillingInterval::Monthly;
-        if ($subscription === null || $next === null || $this->rank($next) <= $this->rank($subscription->plan)) {
+        $isFree = $subscription?->status === SubscriptionStatus::Free;
+        $currentRank = $isFree ? 0 : ($subscription ? $this->rank($subscription->plan) : 0);
+        if ($subscription === null || $next === null || $this->rank($next) <= $currentRank) {
             throw new ApiException(ErrorCodes::SUBSCRIPTION_INVALID_PLAN, 422);
         }
         if ($subscription->billing === BillingInterval::Annual) {
@@ -93,6 +117,33 @@ class ChangeSubscription
 
         $used = $agency->memberships()->count();
         $result = $this->seats->applyTier($agency, $subscription, $next, $interval, $used);
+
+        // Regras de Período de Teste:
+        // 1. Business NUNCA tem teste grátis (cobra imediatamente do cartão e status = active).
+        // 2. Apenas o plano Básico é elegível a teste grátis (30 dias).
+        // 3. O período de teste é válido para apenas UM plano por conta em toda a vida útil da conta.
+        // 4. Se o usuário já tiver usufruído do teste ou cancelado o plano atual, não tem direito a novo teste.
+        // 5. Se o usuário estava em período de teste de outro plano (ex: Básico) e escolheu migrar para outro plano (ex: Pro ou Business),
+        //    o teste anterior é encerrado/removido e o novo plano é cobrado no cartão (status = active).
+        $eligibleForTrial = ($next === PlanCode::Basic)
+            && $isFree
+            && ! $subscription->hasUsedTrial();
+
+        if ($eligibleForTrial) {
+            $subscription->status = SubscriptionStatus::Trial;
+            $subscription->offer_ends_at = now()->addDays(30);
+            $subscription->trial_plan = PlanCode::Basic->value;
+            $subscription->trial_consumed_at = now();
+        } else {
+            // Cobrança imediata no cartão e status ativo
+            $subscription->status = SubscriptionStatus::Active;
+            $subscription->offer_ends_at = null;
+            if ($subscription->trial_consumed_at === null && $subscription->trial_plan !== null) {
+                $subscription->trial_consumed_at = now();
+            }
+        }
+
+        $subscription->cancel_at = null;
         $subscription->save();
         RecordActivity::add($agency->id, null, 'subscription.upgraded');
 
@@ -105,6 +156,8 @@ class ChangeSubscription
             'seats_used' => $used,
             'discount_type' => $subscription->discount_type->value,
             'offer_ends_at' => $subscription->offer_ends_at?->timezone($agency->timezone)->toIso8601String(),
+            'trial_plan' => $subscription->trial_plan,
+            'has_used_trial' => $subscription->hasUsedTrial(),
             'proration_credit_pence' => $result->prorationCreditPence,
             'next_invoice_pence' => $result->nextInvoicePence,
         ];
@@ -119,11 +172,16 @@ class ChangeSubscription
         if ($paymentMethod === '') {
             throw new ApiException(ErrorCodes::SUBSCRIPTION_PAYMENT_FAILED, 422);
         }
+        $agency->payment_method = $paymentMethod;
+        $agency->save();
+
         RecordActivity::add($agency->id, null, 'subscription.payment_method');
+
+        $last4 = str_starts_with($paymentMethod, 'pm_card_') ? substr($paymentMethod, -4) : '4242';
 
         return [
             'status' => 'updated',
-            'card_last4' => '4242',
+            'card_last4' => $last4,
             'card_brand' => 'visa',
         ];
     }

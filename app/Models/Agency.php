@@ -114,4 +114,90 @@ class Agency extends Model
     {
         return $this->hasMany(Review::class);
     }
+
+    public function isPaidMode(): bool
+    {
+        if ($this->subscription === null) {
+            return false;
+        }
+
+        if (in_array($this->subscription->status, [
+            \App\Enums\SubscriptionStatus::Active,
+            \App\Enums\SubscriptionStatus::Complimentary,
+            \App\Enums\SubscriptionStatus::PaidOffline,
+        ], true)) {
+            return true;
+        }
+
+        // Paid model in 30-day trial
+        if ($this->subscription->status === \App\Enums\SubscriptionStatus::Trial && ! $this->isTrialExpired()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function isFreeMode(): bool
+    {
+        return ! $this->isPaidMode();
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        if ($this->subscription === null) {
+            return false;
+        }
+
+        return in_array($this->subscription->status, [
+            \App\Enums\SubscriptionStatus::Active,
+            \App\Enums\SubscriptionStatus::Complimentary,
+            \App\Enums\SubscriptionStatus::PaidOffline,
+        ], true);
+    }
+
+    public function trialEndsAt(): \Illuminate\Support\Carbon
+    {
+        if ($this->subscription?->offer_ends_at !== null) {
+            return $this->subscription->offer_ends_at;
+        }
+
+        return ($this->created_at ?? now())->copy()->addDays(30);
+    }
+
+    public function isTrial(): bool
+    {
+        return $this->subscription?->status === \App\Enums\SubscriptionStatus::Trial;
+    }
+
+    public function isTrialExpired(): bool
+    {
+        if ($this->hasActiveSubscription()) {
+            return false;
+        }
+
+        if (! $this->isTrial()) {
+            return true;
+        }
+
+        return now()->greaterThan($this->trialEndsAt());
+    }
+
+    public function canCreateRecords(): bool
+    {
+        return ! $this->isTrialExpired();
+    }
+
+    public function trialDaysRemaining(): int
+    {
+        if ($this->hasActiveSubscription()) {
+            return 0;
+        }
+
+        if ($this->isTrialExpired()) {
+            return 0;
+        }
+
+        return (int) ceil(max(0, now()->floatDiffInDays($this->trialEndsAt(), false)));
+    }
 }
+
