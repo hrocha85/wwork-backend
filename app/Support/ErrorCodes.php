@@ -64,6 +64,8 @@ final class ErrorCodes
 
     public const CLIENT_NOT_FOUND = 'client.not_found';
 
+    public const CLIENT_INVALID = 'client.invalid';
+
     public const CLIENT_JOIN_INVALID = 'client.join_invalid';
 
     public const REVIEW_INVALID = 'review.invalid';

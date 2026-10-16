@@ -68,7 +68,11 @@ jobs:
             fi
 
             # 7. Executa as migrations do banco de dados
-            php83 artisan migrate --force
+            if ! php83 artisan migrate --force; then
+              echo "artisan migrate falhou."
+              php83 artisan up || true
+              exit 1
+            fi
 
             # 8. Limpa e recria os caches do Laravel
             php83 artisan optimize:clear
@@ -77,3 +81,6 @@ jobs:
 
             # 9. Tira o Laravel do modo de manutenção
             php83 artisan up
+
+            # 10. Registra o status das migrations para auditoria no log
+            php83 artisan migrate:status

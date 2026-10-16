@@ -279,6 +279,71 @@ class ClientsApiTest extends TestCase
             ->assertExactJson(['error' => 'client.invalid']);
     }
 
+    public function test_owner_gets_client_details_with_invoices_and_visits(): void
+    {
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk();
+
+        $client = Client::query()->create([
+            'agency_id' => $owner->membership->agency_id,
+            'created_by' => $owner->id,
+            'name' => 'Full House',
+            'phone' => '+447911000009',
+            'email' => 'fullhouse@example.test',
+            'address' => '9 Detailed Road',
+            'lat' => 51.55,
+            'lng' => -0.15,
+        ]);
+
+        $visit = $this->visit($owner, $client->id, '2026-09-24', VisitStatus::Done);
+
+        $invoice = Invoice::query()->create([
+            'agency_id' => $owner->membership->agency_id,
+            'client_id' => $client->id,
+            'created_by' => $owner->id,
+            'number' => 42,
+            'status' => InvoiceStatus::Sent,
+            'total_pence' => 8000,
+            'locale' => Locale::En,
+            'invoice_region' => 'GB',
+            'pdf_path' => 'invoices/test.pdf',
+        ]);
+
+        InvoiceLine::query()->create([
+            'invoice_id' => $invoice->id,
+            'visit_id' => $visit->id,
+            'service_date' => '2026-09-24',
+            'description' => 'Regular Clean',
+            'price_pence' => 8000,
+        ]);
+
+        $res = $this->getJson('/api/v1/clients/'.$client->id)->assertOk();
+        $res->assertJsonPath('id', $client->id)
+            ->assertJsonPath('name', 'Full House')
+            ->assertJsonPath('phone', '+447911000009')
+            ->assertJsonPath('email', 'fullhouse@example.test')
+            ->assertJsonPath('address', '9 Detailed Road')
+            ->assertJsonPath('visits.0.id', $visit->id)
+            ->assertJsonPath('visits.0.status', 'done')
+            ->assertJsonPath('visits.0.assignee_name', $owner->name)
+            ->assertJsonPath('invoices.0.id', $invoice->id)
+            ->assertJsonPath('invoices.0.number', 'INV-0042')
+            ->assertJsonPath('invoices.0.status', 'sent')
+            ->assertJsonPath('invoices.0.total_pence', 8000);
+
+        $pdfUrl = $res->json('invoices.0.pdf_url');
+        $this->assertNotEmpty($pdfUrl);
+        $this->assertStringContainsString('/api/v1/invoices/'.$invoice->id.'/pdf', $pdfUrl);
+
+        // Test non-existent client returns 404
+        $this->getJson('/api/v1/clients/999999')
+            ->assertNotFound()
+            ->assertExactJson(['error' => 'client.not_found']);
+    }
+
     private function foreignClient(): Client
     {
         $agency = Agency::query()->create([
