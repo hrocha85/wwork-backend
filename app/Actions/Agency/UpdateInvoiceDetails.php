@@ -31,12 +31,14 @@ class UpdateInvoiceDetails
                 throw new ApiException('agency.currency_invalid', 422);
             }
             $agency->currency = $currency;
+            $agency->invoice_region = Agency::regionForCurrency($currency);
         }
 
         $hasInvoiceFields = array_key_exists('legal_address', $input)
             || array_key_exists('phone', $input)
             || array_key_exists('payment_method', $input)
             || array_key_exists('payment_details', $input)
+            || array_key_exists('payment_link', $input)
             || array_key_exists('vat_registered', $input)
             || array_key_exists('tax_id', $input);
 
@@ -44,6 +46,10 @@ class UpdateInvoiceDetails
             $phone = $this->blank($input['phone'] ?? null);
             $method = $this->blank($input['payment_method'] ?? null);
             $details = $this->blank($input['payment_details'] ?? null);
+            $payLink = $this->blank($input['payment_link'] ?? null);
+            if ($payLink !== null && filter_var($payLink, FILTER_VALIDATE_URL) === false) {
+                throw new ApiException('agency.payment_link_invalid', 422);
+            }
             $address = $this->blank($input['legal_address'] ?? null);
             $taxId = $this->blank($input['tax_id'] ?? null);
             $vat = filter_var($input['vat_registered'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -73,6 +79,7 @@ class UpdateInvoiceDetails
                 'phone' => $phone,
                 'payment_method' => $method,
                 'payment_details' => $details,
+                'payment_link' => $payLink,
                 'vat_registered' => $vat,
                 'tax_id' => $vat ? $taxId : null,
             ]);

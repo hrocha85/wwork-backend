@@ -22,6 +22,7 @@ class UpdateInvoiceDetailsRequest extends FormRequest
             'phone' => ['nullable', 'string'],
             'payment_method' => ['nullable', 'string'],
             'payment_details' => ['nullable', 'string'],
+            'payment_link' => ['nullable', 'string', 'max:500'],
             'vat_registered' => ['nullable', 'boolean'],
             'tax_id' => ['nullable', 'string'],
         ];

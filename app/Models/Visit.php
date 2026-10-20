@@ -36,6 +36,8 @@ class Visit extends Model
         'payment_status',
         'check_in_at',
         'sync_uuid',
+        'guest_token',
+        'guest_token_expires_at',
     ];
 
     /**
@@ -55,6 +57,7 @@ class Visit extends Model
             'lng' => 'decimal:7',
             'status' => VisitStatus::class,
             'check_in_at' => 'datetime',
+            'guest_token_expires_at' => 'datetime',
         ];
     }
 

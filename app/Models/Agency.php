@@ -37,10 +37,25 @@ class Agency extends Model
         'average_rating',
     ];
 
+    public static function regionForCurrency(?string $currency): string
+    {
+        return match (strtoupper((string) $currency)) {
+            'BRL' => 'BR',
+            'GBP' => 'GB',
+            'EUR' => 'EU',
+            'USD' => 'US',
+            'PLN' => 'PL',
+            'RON' => 'RO',
+            default => 'GB',
+        };
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Agency $agency): void {
-            if (! filled($agency->invoice_region)) {
+            if (filled($agency->currency)) {
+                $agency->invoice_region = self::regionForCurrency($agency->currency);
+            } elseif (! filled($agency->invoice_region)) {
                 $agency->invoice_region = $agency->country;
             }
         });

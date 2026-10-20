@@ -34,6 +34,16 @@ class LocationResource
             ->where('agency_id', $membership->agency_id)
             ->whereDate('service_date', $today)
             ->whereIn('status', [VisitStatus::EnRoute, VisitStatus::CheckedIn])
+            ->with('client')
+            ->get()
+            ->groupBy('assignee_id');
+
+        $upcoming = Visit::query()
+            ->where('agency_id', $membership->agency_id)
+            ->whereDate('service_date', $today)
+            ->whereIn('status', [VisitStatus::Todo, VisitStatus::Offered])
+            ->with('client')
+            ->orderBy('service_time')
             ->get()
             ->groupBy('assignee_id');
 
@@ -46,10 +56,11 @@ class LocationResource
             ->values();
 
         return [
-            'locations' => $rows->map(function (Membership $row) use ($actor, $timezone, $today, $visits): array {
+            'locations' => $rows->map(function (Membership $row) use ($actor, $timezone, $today, $visits, $upcoming): array {
                 $visit = self::work($visits->get($row->user_id));
                 [$status, $since] = self::presence($row, $visit, $timezone, $today);
                 $user = $row->user;
+                $next = ($upcoming->get($row->user_id) ?? collect())->first();
 
                 return [
                     'user_id' => $row->user_id,
@@ -63,6 +74,10 @@ class LocationResource
                     'self' => $row->user_id === $actor->id,
                     'status' => $status,
                     'since' => $since,
+                    'current_client' => $visit?->client?->name,
+                    'current_visit_id' => $visit?->id,
+                    'next_client' => $next?->client?->name,
+                    'next_time' => $next === null ? null : substr((string) $next->service_time, 0, 5),
                 ];
             })->all(),
         ];

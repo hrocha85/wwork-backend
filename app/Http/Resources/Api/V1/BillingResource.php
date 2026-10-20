@@ -14,10 +14,10 @@ class BillingResource
     /**
      * @return array<string, mixed>
      */
-    public static function show(string $period): array
+    public static function show(string $period, ?string $month = null): array
     {
         $membership = AgencyContext::membership();
-        [$start, $end] = InvoiceResource::window($period === '' ? 'week' : $period);
+        [$start, $end] = InvoiceResource::window($period === '' ? 'week' : $period, $month);
         $from = $start->toDateString();
         $to = $end->toDateString();
 
@@ -51,8 +51,11 @@ class BillingResource
             ->orderBy('id')
             ->get();
 
-        $invoiced = (int) $invoices->sum('total_pence');
-        $received = (int) $invoices->where('status', InvoiceStatus::Paid)->sum('total_pence');
+        $windowTotal = fn (Invoice $invoice): int => (int) $invoice->lines
+            ->filter(fn ($line) => $line->service_date->toDateString() >= $from && $line->service_date->toDateString() <= $to)
+            ->sum('price_pence');
+        $invoiced = (int) $invoices->sum($windowTotal);
+        $received = (int) $invoices->where('status', InvoiceStatus::Paid)->sum($windowTotal);
         $paidOut = (int) $payouts->where('paid', true)->sum('amount_pence');
         $toPay = (int) $payouts->where('paid', false)->sum('amount_pence');
 
@@ -77,10 +80,13 @@ class BillingResource
                 'id' => $invoice->id,
                 'number' => sprintf('INV-%04d', $invoice->number),
                 'client_name' => $invoice->client->name,
-                'service_date' => $invoice->lines->min(fn ($line) => $line->service_date->toDateString()),
-                'total_pence' => $invoice->total_pence,
+                'service_date' => $invoice->lines
+                    ->filter(fn ($line) => $line->service_date->toDateString() >= $from && $line->service_date->toDateString() <= $to)
+                    ->min(fn ($line) => $line->service_date->toDateString()),
+                'total_pence' => $windowTotal($invoice),
                 'status' => $invoice->status->value,
                 'paid_at' => $invoice->paid_at?->timezone($invoice->agency->timezone)->toIso8601String(),
+                'paid_method' => $invoice->paid_method?->value,
             ])->values()->all(),
             'payouts' => $payouts->map(fn (Payout $payout): array => [
                 'id' => $payout->id,

@@ -11,6 +11,7 @@ use App\Support\ApiException;
 use App\Support\ErrorCodes;
 use App\Support\RecordActivity;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ImportClients
 {
@@ -30,6 +31,10 @@ class ImportClients
         $invalid = 0;
         $duplicate = 0;
 
+        if ($commit) {
+            DB::beginTransaction();
+        }
+        try {
         foreach ($rows as $index => $row) {
             $line = $index + 2;
             $name = trim((string) ($row['name'] ?? ''));
@@ -53,6 +58,12 @@ class ImportClients
             if ($reason === null) {
                 $ok++;
                 $seen[$digits] = true;
+                $lat = is_numeric($row['lat'] ?? null) ? (float) $row['lat'] : null;
+                $lng = is_numeric($row['lng'] ?? null) ? (float) $row['lng'] : null;
+                if ($lat === null || $lng === null || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                    $lat = null;
+                    $lng = null;
+                }
                 if ($commit) {
                     Client::query()->create([
                         'agency_id' => $agencyId,
@@ -61,8 +72,8 @@ class ImportClients
                         'phone' => $phone,
                         'email' => $email === '' ? null : $email,
                         'address' => $address,
-                        'lat' => null,
-                        'lng' => null,
+                        'lat' => $lat,
+                        'lng' => $lng,
                     ]);
                     $known[$digits] = true;
                 }
@@ -70,7 +81,7 @@ class ImportClients
                     'line' => $line,
                     'status' => 'ok',
                     'name' => $name,
-                    'needs_pin' => true,
+                    'needs_pin' => $lat === null,
                     'needs_address' => $address === '',
                 ];
             } elseif ($reason === 'duplicate') {
@@ -80,6 +91,16 @@ class ImportClients
                 $invalid++;
                 $report[] = ['line' => $line, 'status' => 'invalid', 'name' => $name, 'reason' => $reason];
             }
+        }
+
+        } catch (\Throwable $e) {
+            if ($commit) {
+                DB::rollBack();
+            }
+            throw $e;
+        }
+        if ($commit) {
+            DB::commit();
         }
 
         if ($commit && $ok > 0) {
