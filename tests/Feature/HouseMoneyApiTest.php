@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -43,12 +45,14 @@ class HouseMoneyApiTest extends TestCase
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();
+        $this->photo($offered);
         $this->postJson('/api/v1/visits/'.$offered.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();
+        $this->assertDatabaseHas('invoices', ['status' => 'paid', 'total_pence' => 8000]);
 
         $this->postJson('/api/v1/invoices', [
             'client_id' => $house,
@@ -73,6 +77,7 @@ class HouseMoneyApiTest extends TestCase
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();
+        $this->photo($foreign);
         $this->postJson('/api/v1/visits/'.$foreign.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',
@@ -85,34 +90,26 @@ class HouseMoneyApiTest extends TestCase
             'visit_ids' => [$foreign],
         ])->assertStatus(422)->assertExactJson(['error' => 'invoice.client_mismatch']);
 
-        $created = $this->postJson('/api/v1/invoices', [
-            'client_id' => $house,
-            'visit_ids' => [$offered],
-        ])->assertCreated();
-        $created->assertJsonPath('number', 'INV-0001')
-            ->assertJsonPath('status', 'to_send')
-            ->assertJsonPath('total_pence', 8000)
-            ->assertJsonPath('pdf_url', null)
-            ->assertJsonPath('lines.0.price_pence', 8000);
-        $this->assertDatabaseHas('invoices', [
-            'id' => $created->json('id'),
-            'invoice_region' => 'GB',
-        ]);
-
-        $pdf = $this->get('/api/v1/invoices/'.$created->json('id').'/pdf')->assertOk();
-        $this->assertStringContainsString('application/pdf', (string) $pdf->headers->get('content-type'));
-        $bytes = $this->pdfText($pdf->getContent());
-        $this->assertStringContainsString(mb_convert_encoding('United Kingdom', 'UTF-16BE'), $bytes);
-        $this->assertStringNotContainsString('commission', strtolower($bytes));
-
         $this->postJson('/api/v1/invoices', [
             'client_id' => $house,
             'visit_ids' => [$offered],
         ])->assertStatus(422)->assertExactJson(['error' => 'invoice.visit_already_invoiced']);
 
-        $share = $this->postJson('/api/v1/invoices/'.$created->json('id').'/share')->assertOk();
+        $created = Invoice::query()->where('client_id', $house)->firstOrFail();
+        $this->assertSame('INV-0001', sprintf('INV-%04d', $created->number));
+        $this->assertSame('paid', $created->status->value);
+        $this->assertSame(8000, $created->total_pence);
+        $this->assertSame('GB', $created->invoice_region);
+
+        $pdf = $this->get('/api/v1/invoices/'.$created->id.'/pdf')->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $pdf->headers->get('content-type'));
+        $bytes = $this->pdfText($pdf->getContent());
+        $this->assertStringContainsString(mb_convert_encoding('United Kingdom', 'UTF-16BE'), $bytes);
+        $this->assertStringNotContainsString('commission', strtolower($bytes));
+
+        $share = $this->postJson('/api/v1/invoices/'.$created->id.'/share')->assertOk();
         $share->assertJsonPath('pdf_url', fn (string $url): bool => str_contains($url, '/api/v1/invoices/share/'));
-        $this->assertDatabaseHas('invoices', ['id' => $created->json('id'), 'status' => 'sent']);
+        $this->assertDatabaseHas('invoices', ['id' => $created->id, 'status' => 'paid']);
 
         $token = basename((string) $share->json('pdf_url'));
         $this->get('/api/v1/invoices/share/'.$token)->assertOk();
@@ -139,6 +136,7 @@ class HouseMoneyApiTest extends TestCase
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();
+        $this->photo($visit);
         $this->postJson('/api/v1/visits/'.$visit.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',
@@ -164,10 +162,11 @@ class HouseMoneyApiTest extends TestCase
         $this->postJson('/api/v1/invoices', [
             'client_id' => $house,
             'visit_ids' => [$visit],
-        ])->assertCreated();
+        ])->assertStatus(422)->assertExactJson(['error' => 'invoice.visit_already_invoiced']);
 
         $ownerBill = $this->getJson('/api/v1/billing?period=week')->assertOk();
         $ownerBill->assertJsonPath('totals.invoiced_pence', 8000)
+            ->assertJsonPath('totals.received_pence', 8000)
             ->assertJsonPath('totals.to_pay_pence', 4800)
             ->assertJsonPath('payouts.0.price_pence', 8000)
             ->assertJsonPath('payouts.0.rate', 60);
@@ -205,6 +204,11 @@ class HouseMoneyApiTest extends TestCase
         Storage::disk('local')->assertExists(
             'invoices/'.$owner->membership->agency_id.'/1.pdf',
         );
+    }
+
+    private function photo(int $visit): void
+    {
+        $this->post('/api/v1/visits/'.$visit.'/photos', ['photo' => UploadedFile::fake()->image('done.jpg')])->assertCreated();
     }
 
     private function pdfText(string $bytes): string

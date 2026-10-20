@@ -100,6 +100,19 @@ class ClientAccess
         $client->join_token = null;
         $client->save();
 
+        // A mesma pessoa pode ser cliente de várias agências: a conta nova
+        // herda todas as fichas com o mesmo e-mail ou telefone.
+        $link = Client::query()->whereNull('user_id');
+        $link->where(function ($query) use ($email, $phone): void {
+            if (filled($email)) {
+                $query->whereRaw('LOWER(email) = ?', [Str::lower((string) $email)]);
+            }
+            if ($phone !== '') {
+                $query->orWhere('phone', $phone);
+            }
+        });
+        $link->update(['user_id' => $user->id]);
+
         return $user;
     }
 
@@ -133,7 +146,7 @@ class ClientAccess
 
         $doneVisits = Visit::query()
             ->whereIn('client_id', $clientIds)
-            ->with(['agency', 'client'])
+            ->with(['agency', 'client', 'invoiceLine.invoice'])
             ->where('status', VisitStatus::Done)
             ->orderByDesc('service_date')
             ->orderByDesc('id')
@@ -143,6 +156,16 @@ class ClientAccess
         $reviewed = Review::query()->whereIn('visit_id', $doneVisits->pluck('id'))->pluck('visit_id')->all();
 
         return [
+            'completed' => $doneVisits->map(fn (Visit $visit): array => [
+                'visit_id' => $visit->id,
+                'agency_name' => $visit->agency->name,
+                'description' => $visit->description,
+                'service_date' => $visit->service_date->toDateString(),
+                'service_time' => $visit->service_time?->format('H:i'),
+                'status' => $visit->status->value,
+                'reviewed' => in_array($visit->id, $reviewed, true),
+                'invoice_id' => $visit->invoiceLine?->invoice?->id,
+            ])->values()->all(),
             'upcoming' => $upcoming->map(fn (Visit $visit): array => [
                 'visit_id' => $visit->id,
                 'agency_name' => $visit->agency->name,
@@ -160,6 +183,7 @@ class ClientAccess
                 'agency_slug' => $invoice->agency->public_slug,
                 'service_date' => $invoice->lines->min(fn ($line) => $line->service_date->toDateString()),
                 'total_pence' => $invoice->total_pence,
+                'currency' => $invoice->agency->currency,
                 'status' => $invoice->status->value,
                 'pdf_url' => $invoice->pdf_path ? route('invoices.client.pdf', ['invoice' => $invoice->id]) : null,
             ])->values()->all(),

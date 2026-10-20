@@ -66,6 +66,71 @@ class ExpandRecurrence
         return $created;
     }
 
+    /**
+     * Keeps a paying agency's weekly series going after the first batch of weeks.
+     *
+     * @return list<Visit>
+     */
+    public function extend(Visit $parent): array
+    {
+        if (! $parent->is_recurring) {
+            return [];
+        }
+
+        $parent->loadMissing(['agency.subscription', 'goals']);
+        if ($parent->agency === null || ! $parent->agency->hasActiveSubscription()) {
+            return [];
+        }
+
+        $days = array_values(array_filter(
+            is_array($parent->recurring_days) ? $parent->recurring_days : [],
+            fn ($day) => is_string($day) && in_array($day, self::DAYS, true),
+        ));
+        if ($days === []) {
+            return [];
+        }
+
+        $timezone = $parent->agency->timezone ?: 'UTC';
+        $agencyId = (int) $parent->agency_id;
+        $assigneeId = (int) $parent->assignee_id;
+        $isOwner = $this->isOwner($agencyId, $assigneeId);
+        $weeks = max(1, (int) config('wwork.recurrence_weeks', 12));
+
+        $last = Visit::query()
+            ->where('agency_id', $agencyId)
+            ->where(function ($query) use ($parent): void {
+                $query->where('id', $parent->id)->orWhere('parent_visit_id', $parent->id);
+            })
+            ->max('service_date');
+
+        $cursor = Carbon::parse($last ?: $parent->service_date->toDateString(), $timezone)->addDay()->startOfDay();
+        $today = Carbon::now($timezone)->startOfDay();
+        if ($cursor->lt($today)) {
+            $cursor = $today->copy();
+        }
+        $limit = $today->copy()->addWeeks($weeks);
+        $created = [];
+
+        while ($cursor->lte($limit)) {
+            $weekday = self::DAYS[$cursor->dayOfWeekIso - 1];
+
+            if (in_array($weekday, $days, true)) {
+                $date = $cursor->toDateString();
+                $time = substr((string) $parent->service_time, 0, 5);
+
+                if ($this->free($parent, $date, $time, $timezone)) {
+                    if ($isOwner && ! $this->blocked($agencyId, $assigneeId, $date, $time, $timezone)) {
+                        $created[] = $this->duplicate($parent, $date, $time);
+                    }
+                }
+            }
+
+            $cursor->addDay();
+        }
+
+        return $created;
+    }
+
     private function duplicate(Visit $parent, string $date, string $time): Visit
     {
         $visit = Visit::query()->create([

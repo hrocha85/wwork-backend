@@ -195,6 +195,14 @@ class ClientsApiTest extends TestCase
 
         $this->postJson('/api/v1/clients/import', ['commit' => true, 'rows' => $rows])->assertOk();
         $this->assertTrue(Client::query()->where('phone', '+447700900777')->whereNull('lat')->exists());
+
+        $placed = [
+            ['name' => 'Casa Com Ponto', 'phone' => '+447700900779', 'address' => 'Rua Pará 20', 'email' => '', 'lat' => -23.55, 'lng' => -46.63],
+        ];
+        $this->postJson('/api/v1/clients/import', ['commit' => false, 'rows' => $placed])->assertOk()
+            ->assertJsonPath('rows.0.needs_pin', false);
+        $this->postJson('/api/v1/clients/import', ['commit' => true, 'rows' => $placed])->assertOk();
+        $this->assertTrue(Client::query()->where('phone', '+447700900779')->whereNotNull('lat')->exists());
     }
 
     public function test_sheet_import_keeps_a_contact_that_still_needs_an_address(): void

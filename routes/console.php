@@ -16,3 +16,8 @@ Artisan::command('subscriptions:remind-offer-ending', function (RemindOfferEndin
 Schedule::command('subscriptions:remind-offer-ending')->dailyAt('09:00')->timezone('Europe/London');
 
 Schedule::command('visits:remind-upcoming')->everyFifteenMinutes();
+
+Schedule::command('visits:extend-recurrence')->dailyAt('06:10')->timezone('Europe/London');
+
+Schedule::command('billing:email-month')->monthlyOn(1, '08:00')->timezone('Europe/London');
+Schedule::command('clients:send-profile-invites')->dailyAt('09:00')->timezone('Europe/London');
