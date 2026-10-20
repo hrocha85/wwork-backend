@@ -119,6 +119,7 @@ class AuthSessionResource
                 'email' => $user->email,
                 'role' => $user->membership?->role?->value,
                 'locale' => $user->locale->value,
+                'preferences' => $user->preferences,
             ],
         ];
     }
@@ -136,6 +137,7 @@ class AuthSessionResource
             'email' => $user->email,
             'role' => $user->membership?->role?->value,
             'locale' => $user->locale->value,
+            'preferences' => $user->preferences,
             'must_change_password' => $user->must_change_password,
             'first_access_at' => self::iso($user->first_access_at, $timezone),
             'last_seen_at' => self::iso($user->last_seen_at, $timezone),
@@ -163,6 +165,7 @@ class AuthSessionResource
             'phone' => $user->phone,
             'role' => 'client',
             'locale' => $user->locale->value,
+            'preferences' => $user->preferences,
             'must_change_password' => $user->must_change_password,
             'first_access_at' => self::iso($user->first_access_at, 'UTC'),
             'last_seen_at' => self::iso($user->last_seen_at, 'UTC'),

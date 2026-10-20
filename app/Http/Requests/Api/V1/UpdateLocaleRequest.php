@@ -2,22 +2,6 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class UpdateLocaleRequest extends FormRequest
+class UpdateLocaleRequest extends UpdateMeRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function rules(): array
-    {
-        return [
-            'locale' => ['required', 'string'],
-        ];
-    }
 }
