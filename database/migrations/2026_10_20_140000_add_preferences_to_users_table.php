@@ -9,14 +9,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {
-            $table->json('preferences')->nullable()->after('locale');
+            if (! Schema::hasColumn('users', 'preferences')) {
+                if (Schema::hasColumn('users', 'locale')) {
+                    $table->json('preferences')->nullable()->after('locale');
+                } else {
+                    $table->json('preferences')->nullable();
+                }
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table): void {
-            $table->dropColumn('preferences');
+            if (Schema::hasColumn('users', 'preferences')) {
+                $table->dropColumn('preferences');
+            }
         });
     }
 };
