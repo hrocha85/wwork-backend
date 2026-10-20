@@ -124,6 +124,10 @@ final class ErrorCodes
 
     public const INVOICE_SHARE_EXPIRED = 'invoice.share_expired';
 
+    public const INVOICE_PAID_METHOD_INVALID = 'invoice.paid_method_invalid';
+
+    public const INVOICE_PIX_ONLY_BRAZIL = 'invoice.pix_only_brazil';
+
     public const AGENDA_INVALID_TOKEN = 'agenda.invalid_token';
 
     public const AGENDA_MISSING_PLAYER = 'agenda.missing_player';

@@ -89,7 +89,7 @@ class RegisterOwner
                 'timezone' => 'Europe/London',
                 'currency' => $currency,
                 'country' => 'GB',
-                'invoice_region' => 'GB',
+                'invoice_region' => Agency::regionForCurrency($currency),
                 'trade' => $trade,
                 'utm_source' => $data['utm_source'] ?? null,
                 'utm_campaign' => $data['utm_campaign'] ?? null,

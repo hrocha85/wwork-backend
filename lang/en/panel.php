@@ -25,6 +25,11 @@ return [
         'agencies' => 'Agencies',
         'people' => 'People',
         'subscriptions' => 'Subscriptions',
+    'operations' => 'Operations',
+        'end_clients' => 'Clients',
+        'services' => 'Services',
+        'billing_invoices' => 'Invoices',
+        'ratings' => 'Reviews',
     ],
     'dashboard' => [
         'subheading' => 'New signups, where they come from, and subscription health for the period you pick. House invoices are not in these numbers.',
@@ -216,4 +221,16 @@ return [
         'confirm' => 'Confirm password',
         'confirm_help' => 'Type the same password again.',
     ],
+    'ops' => [
+        'agencies' => 'New agencies', 'agencies_help' => 'Created in the period',
+        'clients' => 'New clients', 'clients_help' => 'With account :accounts · lead :leads · email without account :email_no_account · phone without email :phone_no_email',
+        'services' => 'Services', 'services_help' => 'Done :done · cash :cash · invoice :invoice · with photo :photo · reviews :review',
+        'invoices' => 'Invoices in period', 'invoices_help' => 'To send :to_send · sent :sent · paid :paid',
+        'payouts' => 'Payouts', 'payouts_help' => 'By currency; ✓ already paid',
+        'funnel' => 'Funnel: email captured', 'funnel_help' => 'Codes :codes · accounts :accounts · declined :declined · second visit :repeat · reviews :reviews',
+    ],
+    'end_clients' => ['one' => 'Client', 'list_help' => 'Agency end clients, read only.', 'name' => 'Name', 'email' => 'Email', 'phone' => 'Phone', 'agency' => 'Agency', 'trade' => 'Trade', 'country' => 'Country', 'currency' => 'Currency', 'has_account' => 'Account', 'visits' => 'Visits', 'last_visit' => 'Last visit', 'last_rating' => 'Last rating', 'filter_email_no_account' => 'Email without account'],
+    'services' => ['one' => 'Service', 'list_help' => 'Services from every agency, read only.', 'date' => 'Date', 'client' => 'Client', 'agency' => 'Agency', 'assignee' => 'Assignee', 'value' => 'Value', 'currency' => 'Currency', 'status' => 'Status', 'payment' => 'Payment', 'photos' => 'Photos', 'reviewed' => 'Reviewed'],
+    'billing_invoices' => ['one' => 'Invoice', 'list_help' => 'Invoices from every agency, read only.', 'number' => 'Number', 'client' => 'Client', 'agency' => 'Agency', 'service_date' => 'Service date', 'total' => 'Total', 'currency' => 'Currency', 'status' => 'Status', 'paid_at' => 'Paid at', 'paid_method' => 'Paid by'],
+    'ratings' => ['one' => 'Review', 'list_help' => 'Client reviews, read only.', 'rating' => 'Rating', 'comment' => 'Comment', 'client' => 'Client', 'agency' => 'Agency', 'service_date' => 'Service date'],
 ];

@@ -60,10 +60,10 @@ class InvoiceResource
     /**
      * @return array<string, mixed>
      */
-    public static function index(string $period, ?int $clientId = null): array
+    public static function index(string $period, ?int $clientId = null, ?string $month = null): array
     {
         self::assertOwner();
-        [$start, $end] = self::window($period);
+        [$start, $end] = self::window($period, $month);
 
         $query = Invoice::query()
             ->where('agency_id', AgencyContext::membership()->agency_id)
@@ -81,8 +81,20 @@ class InvoiceResource
             ->orderBy('id')
             ->get();
 
+        $from = $start->toDateString();
+        $to = $end->toDateString();
+
         return [
-            'invoices' => $invoices->map(fn (Invoice $invoice): array => self::listItem($invoice))->values()->all(),
+            'invoices' => $invoices->map(function (Invoice $invoice) use ($from, $to): array {
+                $item = self::listItem($invoice);
+                $lines = $invoice->lines->filter(
+                    fn (InvoiceLine $line) => $line->service_date->toDateString() >= $from && $line->service_date->toDateString() <= $to,
+                );
+                $item['total_pence'] = (int) $lines->sum('price_pence');
+                $item['service_date'] = $lines->min(fn (InvoiceLine $line) => $line->service_date->toDateString());
+
+                return $item;
+            })->values()->all(),
         ];
     }
 
@@ -133,6 +145,7 @@ class InvoiceResource
             'sent_at' => $invoice->sent_at?->timezone($timezone)->toIso8601String(),
             'paid_at' => $invoice->paid_at?->timezone($timezone)->toIso8601String(),
             'paid_note' => $invoice->paid_note,
+            'paid_method' => $invoice->paid_method?->value,
             'pay_by' => $invoice->pay_by?->value,
             'pay_link' => $invoice->pay_link,
             'lines' => $invoice->lines->map(fn (InvoiceLine $line): array => [
@@ -163,6 +176,7 @@ class InvoiceResource
             'sent_at' => $invoice->sent_at?->timezone($timezone)->toIso8601String(),
             'paid_at' => $invoice->paid_at?->timezone($timezone)->toIso8601String(),
             'paid_note' => $invoice->paid_note,
+            'paid_method' => $invoice->paid_method?->value,
         ];
     }
 
@@ -176,11 +190,21 @@ class InvoiceResource
     /**
      * @return array{0: Carbon, 1: Carbon}
      */
-    public static function window(string $period): array
+    public static function window(string $period, ?string $month = null): array
     {
-        $now = Carbon::now(AgencyContext::membership()->agency->timezone);
+        $timezone = AgencyContext::membership()->agency->timezone;
+        $now = Carbon::now($timezone);
 
         if ($period === 'month') {
+            if (filled($month)) {
+                $start = Carbon::createFromFormat('!Y-m', $month, $timezone)->startOfMonth();
+                if ($start->gt($now->copy()->startOfMonth())) {
+                    throw new ApiException('billing.month_future', 422);
+                }
+
+                return [$start, $start->copy()->endOfMonth()];
+            }
+
             return [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()];
         }
 

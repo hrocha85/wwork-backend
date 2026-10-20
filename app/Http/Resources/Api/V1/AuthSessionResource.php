@@ -191,6 +191,7 @@ class AuthSessionResource
             $payload['phone'] = $agency->phone;
             $payload['payment_method'] = $agency->payment_method;
             $payload['payment_details'] = $agency->payment_details;
+            $payload['payment_link'] = $agency->payment_link;
             $payload['vat_registered'] = $agency->vat_registered;
             $payload['tax_id'] = $agency->tax_id;
             $payload['has_logo'] = filled($agency->logo_path);

@@ -60,6 +60,7 @@ class FieldApiTest extends TestCase
             ->assertJsonPath('status', 'checked_in');
 
         Carbon::setTestNow('2026-09-25 12:01:30');
+        $this->photo($mine);
         $this->postJson('/api/v1/visits/'.$mine.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',
@@ -93,6 +94,7 @@ class FieldApiTest extends TestCase
             'https://api.onesignal.com/*' => Http::response('down', 500),
         ]);
 
+        $this->photo($offered);
         $this->postJson('/api/v1/visits/'.$offered.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',
@@ -148,7 +150,7 @@ class FieldApiTest extends TestCase
         ])->assertNotFound()->assertExactJson(['error' => 'visit.goal_not_found']);
     }
 
-    public function test_checkout_cash_skips_the_invoice_and_invoice_creates_one(): void
+    public function test_checkout_cash_creates_a_paid_invoice_and_invoice_creates_one_to_send(): void
     {
         $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
         $partner = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
@@ -166,6 +168,7 @@ class FieldApiTest extends TestCase
             'lng' => -0.1,
         ])->assertStatus(422);
 
+        $this->photo($cash);
         $this->postJson('/api/v1/visits/'.$cash.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',
@@ -177,7 +180,9 @@ class FieldApiTest extends TestCase
             'payment_method' => 'cash',
             'payment_status' => 'paid',
         ]);
-        $this->assertDatabaseCount('invoices', 0);
+        $this->assertDatabaseCount('invoices', 1);
+        $this->assertDatabaseHas('invoices', ['status' => 'paid']);
+        $this->assertDatabaseHas('invoice_lines', ['visit_id' => $cash, 'price_pence' => 8000]);
 
         $billed = $this->postJson('/api/v1/visits', $this->body($client, $partner->id))->assertCreated()->json('id');
         $this->postJson('/api/v1/logout')->assertNoContent();
@@ -188,6 +193,7 @@ class FieldApiTest extends TestCase
             'lat' => 51.5,
             'lng' => -0.1,
         ])->assertOk();
+        $this->photo($billed);
         $issued = $this->postJson('/api/v1/visits/'.$billed.'/events', [
             'type' => 'check_out',
             'payment_method' => 'invoice',
@@ -196,8 +202,13 @@ class FieldApiTest extends TestCase
         ])->assertOk();
         $issued->assertJsonPath('payment_status', 'pending');
         $this->assertStringContainsString('/api/v1/invoices/share/', (string) $issued->json('invoice.pdf_url'));
-        $this->assertDatabaseCount('invoices', 1);
+        $this->assertDatabaseCount('invoices', 2);
         $this->assertDatabaseHas('payouts', ['visit_id' => $billed, 'user_id' => $partner->id]);
+    }
+
+    private function photo(int $visit): void
+    {
+        $this->post('/api/v1/visits/'.$visit.'/photos', ['photo' => UploadedFile::fake()->image('done.jpg')])->assertCreated();
     }
 
     private function login(string $email): void

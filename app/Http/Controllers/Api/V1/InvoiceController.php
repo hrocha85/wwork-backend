@@ -26,8 +26,15 @@ class InvoiceController extends Controller
         return response()->json(InvoiceResource::candidates((int) request()->query('client_id')));
     }
 
-    public function pending(GetPendingInvoices $action): JsonResponse
+    public function pending(PeriodRequest $request, GetPendingInvoices $action): JsonResponse
     {
+        $period = $request->validated('period');
+        if (filled($period)) {
+            [$start, $end] = InvoiceResource::window($period, $request->validated('month'));
+
+            return response()->json($action($start->toDateString(), $end->toDateString()));
+        }
+
         return response()->json($action());
     }
 
@@ -43,7 +50,7 @@ class InvoiceController extends Controller
         $period = $request->validated('period') ?: 'week';
         $clientId = $request->validated('client_id');
 
-        return response()->json(InvoiceResource::index($period, $clientId));
+        return response()->json(InvoiceResource::index($period, $clientId, $request->validated('month')));
     }
 
     public function show(int $invoice): JsonResponse
@@ -72,7 +79,7 @@ class InvoiceController extends Controller
 
     public function paid(int $invoice, Request $request, MarkInvoicePaid $mark): JsonResponse
     {
-        $saved = $mark($this->invoice($invoice), $request->input('paid_on'), $request->input('note'));
+        $saved = $mark($this->invoice($invoice), $request->input('paid_on'), $request->input('note'), false, $request->input('paid_method'));
         $saved->loadMissing('agency');
 
         return response()->json([
@@ -80,6 +87,7 @@ class InvoiceController extends Controller
             'status' => $saved->status->value,
             'paid_at' => $saved->paid_at?->timezone($saved->agency->timezone)->toIso8601String(),
             'paid_note' => $saved->paid_note,
+            'paid_method' => $saved->paid_method?->value,
         ]);
     }
 
