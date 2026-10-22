@@ -24,9 +24,13 @@ class OperationsStats extends StatsOverviewWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 20;
 
     protected static bool $isLazy = false;
+
+    protected int|string|array $columnSpan = 'full';
+
+    protected int|array|null $columns = 3;
 
     public static function canView(): bool
     {
