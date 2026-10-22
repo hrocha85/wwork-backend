@@ -27,6 +27,7 @@ class AgencyController extends Controller
 
         /** @var User $user */
         $user = $request->user();
+        $user->unsetRelation('membership');
 
         return response()->json(AuthSessionResource::me($user));
     }

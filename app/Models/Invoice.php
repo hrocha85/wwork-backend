@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\Locale;
+use App\Enums\PaidMethod;
 use App\Enums\PayBy;
 use App\Models\Concerns\HasSyncUuid;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +29,7 @@ class Invoice extends Model
         'sent_at',
         'paid_at',
         'paid_note',
+        'paid_method',
         'pay_by',
         'pay_link',
         'sync_uuid',
@@ -44,6 +46,7 @@ class Invoice extends Model
             'total_pence' => 'integer',
             'locale' => Locale::class,
             'pay_by' => PayBy::class,
+            'paid_method' => PaidMethod::class,
             'sent_at' => 'datetime',
             'paid_at' => 'datetime',
         ];

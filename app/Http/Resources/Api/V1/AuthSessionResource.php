@@ -80,6 +80,7 @@ class AuthSessionResource
             'seats' => $subscription?->seats,
             'amount' => $subscription?->amount_minor,
             'cancel_at' => self::iso($subscription?->cancel_at, $agency->timezone),
+            'offer_ends_at' => self::iso($subscription?->offer_ends_at, $agency->timezone),
         ];
 
         return [
@@ -87,6 +88,20 @@ class AuthSessionResource
             'agency' => $agencyPayload,
             'team_count' => $agency->memberships()->count(),
             'max_seats' => $subscription?->plan?->maxSeats(),
+            'plan_mode' => [
+                'is_paid' => $agency->isPaidMode(),
+                'can_schedule' => $agency->isPaidMode(),
+                'can_invoice' => $agency->isPaidMode(),
+                'can_manage_team' => $agency->isPaidMode(),
+                'is_collaborator_suspended' => $user->membership?->role === MembershipRole::Invited && $agency->isFreeMode(),
+            ],
+            'trial' => [
+                'is_trial' => ! $agency->hasActiveSubscription(),
+                'has_expired' => $agency->isTrialExpired(),
+                'days_remaining' => $agency->trialDaysRemaining(),
+                'trial_ends_at' => self::iso($agency->trialEndsAt(), $agency->timezone),
+                'can_create' => $agency->canCreateRecords(),
+            ],
         ];
     }
 
@@ -104,6 +119,7 @@ class AuthSessionResource
                 'email' => $user->email,
                 'role' => $user->membership?->role?->value,
                 'locale' => $user->locale->value,
+                'preferences' => $user->preferences,
             ],
         ];
     }
@@ -121,6 +137,7 @@ class AuthSessionResource
             'email' => $user->email,
             'role' => $user->membership?->role?->value,
             'locale' => $user->locale->value,
+            'preferences' => $user->preferences,
             'must_change_password' => $user->must_change_password,
             'first_access_at' => self::iso($user->first_access_at, $timezone),
             'last_seen_at' => self::iso($user->last_seen_at, $timezone),
@@ -148,6 +165,7 @@ class AuthSessionResource
             'phone' => $user->phone,
             'role' => 'client',
             'locale' => $user->locale->value,
+            'preferences' => $user->preferences,
             'must_change_password' => $user->must_change_password,
             'first_access_at' => self::iso($user->first_access_at, 'UTC'),
             'last_seen_at' => self::iso($user->last_seen_at, 'UTC'),
@@ -176,6 +194,7 @@ class AuthSessionResource
             $payload['phone'] = $agency->phone;
             $payload['payment_method'] = $agency->payment_method;
             $payload['payment_details'] = $agency->payment_details;
+            $payload['payment_link'] = $agency->payment_link;
             $payload['vat_registered'] = $agency->vat_registered;
             $payload['tax_id'] = $agency->tax_id;
             $payload['has_logo'] = filled($agency->logo_path);
@@ -196,3 +215,5 @@ class AuthSessionResource
         return Carbon::parse($moment)->timezone($timezone)->toIso8601String();
     }
 }
+
+

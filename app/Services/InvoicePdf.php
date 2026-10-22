@@ -28,12 +28,14 @@ class InvoicePdf
         $agency = $invoice->agency;
         $locale = $invoice->locale->value;
         $labels = $this->labels($locale);
-        $total = $agency->currency.' '.number_format($invoice->total_pence / 100, 2, '.', '');
+        $region = (string) ($invoice->invoice_region ?? $agency->invoice_region ?? 'GB');
+        $labels['vat'] = $this->taxLabel($region);
+        $total = $this->money((int) $invoice->total_pence, (string) $agency->currency, $region);
         $html = view('invoices.pdf', [
             'labels' => $labels,
             'title' => mb_strtoupper($labels['invoice']),
             'agencyName' => $agency->name,
-            'region' => $this->regionLabel($agency->invoice_region),
+            'region' => $this->regionLabel($region),
             'legalAddress' => $agency->legal_address,
             'phone' => $agency->phone,
             'email' => $agency->ownerMembership?->user?->email,
@@ -51,7 +53,7 @@ class InvoicePdf
             'clientAddress' => $invoice->client->address,
             'lines' => $invoice->lines,
             'total' => $total,
-            'money' => fn (int $pence): string => $agency->currency.' '.number_format($pence / 100, 2, '.', ''),
+            'money' => fn (int $pence): string => $this->money($pence, (string) $agency->currency, $region),
         ])->render();
 
         $options = new Options;
@@ -67,9 +69,43 @@ class InvoicePdf
     public function regionLabel(string $region): string
     {
         return match ($region) {
+            'BR' => 'Brasil',
             'GB' => 'United Kingdom',
+            'EU' => 'Europa',
+            'US' => 'United States',
+            'PL' => 'Polska',
+            'RO' => 'România',
             default => $region,
         };
+    }
+
+    public function taxLabel(string $region): string
+    {
+        return match ($region) {
+            'BR' => 'CNPJ',
+            'GB' => 'VAT',
+            'EU' => 'IVA',
+            'US' => 'Tax ID',
+            'PL' => 'NIP',
+            'RO' => 'CIF',
+            default => 'VAT',
+        };
+    }
+
+    private function money(int $pence, string $currency, string $region): string
+    {
+        $symbol = match (strtoupper($currency)) {
+            'BRL' => 'R$',
+            'GBP' => '£',
+            'EUR' => '€',
+            'USD' => '$',
+            'PLN' => 'zł',
+            'RON' => 'lei',
+            default => $currency,
+        };
+        $european = in_array($region, ['BR', 'EU', 'PL', 'RO'], true);
+
+        return $symbol.' '.number_format($pence / 100, 2, $european ? ',' : '.', $european ? '.' : ',');
     }
 
     /**

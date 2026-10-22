@@ -4,7 +4,9 @@ namespace App\Console\Commands;
 
 use App\Actions\OneSignal\PushNotificationService;
 use App\Enums\VisitStatus;
+use App\Mail\VisitReminderMail;
 use App\Models\Visit;
+use App\Support\MailNotifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
@@ -36,6 +38,7 @@ class RemindUpcomingVisits extends Command
                     }
 
                     $push->remind($visit);
+                    $this->emailClient($visit);
                     $visit->forceFill(['reminded_at' => $now])->saveQuietly();
                     $sent++;
                 }
@@ -44,6 +47,25 @@ class RemindUpcomingVisits extends Command
         $this->info('Lembretes enviados: '.$sent);
 
         return self::SUCCESS;
+    }
+
+    private function emailClient(Visit $visit): void
+    {
+        $visit->agency?->loadMissing('subscription');
+        $email = $visit->client?->email;
+        if ($visit->agency === null || ! $visit->agency->hasActiveSubscription() || ! filled($email)) {
+            return;
+        }
+
+        $owner = MailNotifier::owner($visit->agency);
+        app(MailNotifier::class)->send(
+            'visit.reminder',
+            (string) $email,
+            $owner === null ? null : MailNotifier::localeFor($owner),
+            new VisitReminderMail($visit),
+            $visit->agency_id,
+            $visit->assignee_id,
+        );
     }
 
     private function insideWindow(Visit $visit, Carbon $now): bool

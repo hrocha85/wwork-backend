@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -96,6 +97,7 @@ class PushNotificationsTest extends TestCase
         ])->assertOk();
 
         Carbon::setTestNow('2026-09-25 12:30:00');
+        $this->post('/api/v1/visits/'.$visit.'/photos', ['photo' => UploadedFile::fake()->image('done.jpg')])->assertCreated();
         $this->postJson('/api/v1/visits/'.$visit.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',
@@ -137,6 +139,7 @@ class PushNotificationsTest extends TestCase
         ])->assertOk();
 
         Carbon::setTestNow('2026-09-25 12:30:00');
+        $this->post('/api/v1/visits/'.$visit.'/photos', ['photo' => UploadedFile::fake()->image('done.jpg')])->assertCreated();
         $this->postJson('/api/v1/visits/'.$visit.'/events', [
             'type' => 'check_out',
             'payment_method' => 'cash',

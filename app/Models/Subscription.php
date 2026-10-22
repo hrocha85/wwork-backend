@@ -23,6 +23,8 @@ class Subscription extends Model
         'discount_type',
         'offer_ends_at',
         'offer_reminded_at',
+        'trial_plan',
+        'trial_consumed_at',
         'cancel_at',
         'complimentary_until',
         'paid_offline_until',
@@ -46,6 +48,7 @@ class Subscription extends Model
             'discount_type' => AnnualDiscount::class,
             'offer_ends_at' => 'datetime',
             'offer_reminded_at' => 'datetime',
+            'trial_consumed_at' => 'datetime',
             'cancel_at' => 'datetime',
             'complimentary_until' => 'datetime',
             'paid_offline_until' => 'datetime',
@@ -55,6 +58,28 @@ class Subscription extends Model
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
+    }
+
+    public function hasUsedTrial(): bool
+    {
+        return $this->trial_consumed_at !== null;
+    }
+
+    public function isOnTrial(): bool
+    {
+        return $this->status === SubscriptionStatus::Trial
+            && $this->offer_ends_at !== null
+            && $this->offer_ends_at->isFuture();
+    }
+
+    public function canAccessTrial(PlanCode $targetPlan): bool
+    {
+        // Apenas o plano Básico é elegível a teste grátis, e apenas se a conta ainda não consumiu o teste único
+        if ($targetPlan !== PlanCode::Basic) {
+            return false;
+        }
+
+        return ! $this->hasUsedTrial();
     }
 
     /**

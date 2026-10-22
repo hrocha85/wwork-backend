@@ -59,7 +59,7 @@ class NotifyJobFinished
                     [$user],
                     $title,
                     (string) $client->address,
-                    '/calendar',
+                    '/client/visits/'.$visit->id,
                     self::key($visit, 'client'),
                 ));
 

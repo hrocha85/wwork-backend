@@ -25,6 +25,11 @@ return [
         'agencies' => 'Agências',
         'people' => 'Pessoas',
         'subscriptions' => 'Assinaturas',
+    'operations' => 'Operação',
+        'end_clients' => 'Clientes',
+        'services' => 'Serviços',
+        'billing_invoices' => 'Faturas',
+        'ratings' => 'Avaliações',
     ],
     'dashboard' => [
         'subheading' => 'Cadastros novos, de onde vêm e a saúde da mensalidade no período escolhido. A fatura da casa não entra nestes números.',
@@ -216,4 +221,16 @@ return [
         'confirm' => 'Confirmar senha',
         'confirm_help' => 'Digite a mesma senha outra vez.',
     ],
+    'ops' => [
+        'agencies' => 'Agências novas', 'agencies_help' => 'Criadas no período',
+        'clients' => 'Clientes novos', 'clients_help' => 'Com conta :accounts · lead :leads · e-mail sem conta :email_no_account · telefone sem e-mail :phone_no_email',
+        'services' => 'Serviços', 'services_help' => 'Concluídos :done · dinheiro :cash · fatura :invoice · com foto :photo · avaliações :review',
+        'invoices' => 'Faturas no período', 'invoices_help' => 'A enviar :to_send · enviadas :sent · pagas :paid',
+        'payouts' => 'Repasses', 'payouts_help' => 'Por moeda; ✓ já pago',
+        'funnel' => 'Funil: e-mail capturado', 'funnel_help' => 'Códigos :codes · contas :accounts · recusas :declined · segunda visita :repeat · avaliações :reviews',
+    ],
+    'end_clients' => ['one' => 'Cliente', 'list_help' => 'Clientes finais das agências, só leitura.', 'name' => 'Nome', 'email' => 'E-mail', 'phone' => 'Telefone', 'agency' => 'Agência', 'trade' => 'Ofício', 'country' => 'País', 'currency' => 'Moeda', 'has_account' => 'Conta', 'visits' => 'Visitas', 'last_visit' => 'Última visita', 'last_rating' => 'Última nota', 'filter_email_no_account' => 'E-mail sem conta'],
+    'services' => ['one' => 'Serviço', 'list_help' => 'Serviços de todas as agências, só leitura.', 'date' => 'Data', 'client' => 'Cliente', 'agency' => 'Agência', 'assignee' => 'Responsável', 'value' => 'Valor', 'currency' => 'Moeda', 'status' => 'Estado', 'payment' => 'Pagamento', 'photos' => 'Fotos', 'reviewed' => 'Avaliado'],
+    'billing_invoices' => ['one' => 'Fatura', 'list_help' => 'Faturas de todas as agências, só leitura.', 'number' => 'Número', 'client' => 'Cliente', 'agency' => 'Agência', 'service_date' => 'Data do serviço', 'total' => 'Total', 'currency' => 'Moeda', 'status' => 'Estado', 'paid_at' => 'Paga em', 'paid_method' => 'Paga com'],
+    'ratings' => ['one' => 'Avaliação', 'list_help' => 'Avaliações dos clientes, só leitura.', 'rating' => 'Nota', 'comment' => 'Comentário', 'client' => 'Cliente', 'agency' => 'Agência', 'service_date' => 'Data do serviço'],
 ];

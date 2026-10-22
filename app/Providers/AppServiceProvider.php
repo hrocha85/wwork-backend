@@ -13,7 +13,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(StripeBilling::class, LiveStripeBilling::class);
+        $this->app->bind(StripeBilling::class, function () {
+            $live = new LiveStripeBilling();
+            if ($live->available()) {
+                return $live;
+            }
+
+            return new \App\Services\Stripe\FakeStripeBilling();
+        });
     }
 
     /**

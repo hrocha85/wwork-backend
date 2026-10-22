@@ -20,7 +20,7 @@ class GetPendingInvoices
      *     checklist: array{photos_missing: array<int, int>, details_missing: array<int, string>, price_missing: bool}
      * }>
      */
-    public function __invoke(): array
+    public function __invoke(?string $from = null, ?string $to = null): array
     {
         $actor = AgencyContext::user();
 
@@ -30,10 +30,16 @@ class GetPendingInvoices
 
         $membership = AgencyContext::membership();
 
-        $visits = Visit::query()
+        $query = Visit::query()
             ->where('agency_id', $membership->agency_id)
             ->where('status', VisitStatus::Done)
-            ->whereDoesntHave('invoiceLines')
+            ->whereDoesntHave('invoiceLines');
+
+        if (filled($from) && filled($to)) {
+            $query->whereDate('service_date', '>=', $from)->whereDate('service_date', '<=', $to);
+        }
+
+        $visits = $query
             ->with(['client', 'photos'])
             ->orderBy('client_id')
             ->orderBy('service_date')

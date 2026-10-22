@@ -124,6 +124,10 @@ final class ErrorCodes
 
     public const INVOICE_SHARE_EXPIRED = 'invoice.share_expired';
 
+    public const INVOICE_PAID_METHOD_INVALID = 'invoice.paid_method_invalid';
+
+    public const INVOICE_PIX_ONLY_BRAZIL = 'invoice.pix_only_brazil';
+
     public const AGENDA_INVALID_TOKEN = 'agenda.invalid_token';
 
     public const AGENDA_MISSING_PLAYER = 'agenda.missing_player';
@@ -137,6 +141,12 @@ final class ErrorCodes
     public const AGENDA_BLOCK_FORBIDDEN = 'agenda.block_forbidden';
 
     public const REGISTER_PAYMENT_FAILED = 'register.payment_failed';
+
+    public const TRIAL_EXPIRED = 'trial.expired';
+
+    public const PLAN_UPGRADE_REQUIRED = 'plan.upgrade_required';
+
+    public const TEAM_ACCESS_SUSPENDED = 'team.access_suspended';
 
     public const SUBSCRIPTION_PAST_DUE = 'subscription.past_due';
 

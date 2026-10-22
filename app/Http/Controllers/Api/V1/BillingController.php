@@ -17,7 +17,7 @@ class BillingController extends Controller
     {
         $period = $request->validated('period') ?: 'week';
 
-        return response()->json(BillingResource::show($period));
+        return response()->json(BillingResource::show($period, $request->validated('month')));
     }
 
     public function pay(int $payout, MarkPayoutPaid $mark): JsonResponse

@@ -29,6 +29,9 @@ class Client extends Model
         'note',
         'onesignal_player_id',
         'agenda_token',
+        'profile_invite_stage',
+        'profile_invite_last_at',
+        'profile_invite_declined_at',
         'sync_uuid',
     ];
 
@@ -41,6 +44,9 @@ class Client extends Model
             'lat' => 'decimal:7',
             'lng' => 'decimal:7',
             'contact_channel' => ContactChannel::class,
+            'profile_invite_stage' => 'integer',
+            'profile_invite_last_at' => 'datetime',
+            'profile_invite_declined_at' => 'datetime',
         ];
     }
 
@@ -62,6 +68,11 @@ class Client extends Model
     public function visits(): HasMany
     {
         return $this->hasMany(Visit::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 
     public function invoices(): HasMany
