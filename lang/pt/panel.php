@@ -233,4 +233,14 @@ return [
     'services' => ['one' => 'Serviço', 'list_help' => 'Serviços de todas as agências, só leitura.', 'date' => 'Data', 'client' => 'Cliente', 'agency' => 'Agência', 'assignee' => 'Responsável', 'value' => 'Valor', 'currency' => 'Moeda', 'status' => 'Estado', 'payment' => 'Pagamento', 'photos' => 'Fotos', 'reviewed' => 'Avaliado'],
     'billing_invoices' => ['one' => 'Fatura', 'list_help' => 'Faturas de todas as agências, só leitura.', 'number' => 'Número', 'client' => 'Cliente', 'agency' => 'Agência', 'service_date' => 'Data do serviço', 'total' => 'Total', 'currency' => 'Moeda', 'status' => 'Estado', 'paid_at' => 'Paga em', 'paid_method' => 'Paga com'],
     'ratings' => ['one' => 'Avaliação', 'list_help' => 'Avaliações dos clientes, só leitura.', 'rating' => 'Nota', 'comment' => 'Comentário', 'client' => 'Cliente', 'agency' => 'Agência', 'service_date' => 'Data do serviço'],
+    'installs' => [
+        'total' => 'Instalações do app',
+        'total_help' => 'Cliques para instalar o aplicativo no período.',
+        'pwa' => 'PWA (Navegador)',
+        'pwa_help' => 'Web / Desktop / Android PWA',
+        'apple' => 'Apple iOS',
+        'apple_help' => 'Cliques para iPhone / iPad',
+        'android' => 'Android',
+        'android_help' => 'Cliques para dispositivos Android',
+    ],
 ];

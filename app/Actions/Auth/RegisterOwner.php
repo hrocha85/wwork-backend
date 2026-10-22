@@ -149,7 +149,9 @@ class RegisterOwner
         ), $user->membership?->agency_id, $user->id);
 
         Auth::guard('web')->login($user);
-        request()->session()->regenerate();
+        if (request()->hasSession()) {
+            request()->session()->regenerate();
+        }
 
         return $user->fresh(['membership.agency.subscription']);
     }

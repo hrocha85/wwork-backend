@@ -13,9 +13,11 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class MrrByPlanChart extends ChartWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 11;
 
     protected static bool $isLazy = false;
+
+    protected int|string|array $columnSpan = 1;
 
     public function getHeading(): string|Htmlable|null
     {

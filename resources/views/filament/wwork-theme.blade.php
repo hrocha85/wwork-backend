@@ -90,12 +90,8 @@
         box-shadow: 0 10px 28px rgba(31, 41, 55, 0.06);
     }
 
-    .fi-header-subheading,
-    .fi-wi-stats-overview-stat-description {
-        max-width: 44rem;
-    }
-
     .fi-header-subheading {
+        max-width: 44rem;
         color: color-mix(in srgb, #1F2937 70%, #79B4B0);
     }
 
@@ -191,5 +187,133 @@
 
     html.dark .wwork-form-page .fi-page-content {
         background: #2C3848;
+    }
+
+    /* ─── Dashboard: Layout & Cards Modernos ─── */
+
+    /* Cards de métricas: altura uniforme, borda sutil de marca, elevação suave */
+    .fi-wi-stats-overview-stat {
+        min-height: 135px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid rgba(121, 180, 176, 0.22);
+        transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .fi-wi-stats-overview-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(31, 41, 55, 0.08);
+    }
+
+    html.dark .fi-wi-stats-overview-stat {
+        border: 1px solid rgba(121, 180, 176, 0.16);
+    }
+
+    /* Ícone de destaque dentro do card: badge arredondado com tom teal suave */
+    .fi-wi-stats-overview-stat-icon {
+        background-color: rgba(121, 180, 176, 0.12) !important;
+        color: #3B7A76 !important;
+        border-radius: 12px !important;
+        padding: 0.5rem !important;
+    }
+
+    html.dark .fi-wi-stats-overview-stat-icon {
+        background-color: rgba(121, 180, 176, 0.22) !important;
+        color: #79B4B0 !important;
+    }
+
+    /* Valor principal do stat: tipografia limpa, peso semibold/bold, tamanho controlado */
+    .fi-wi-stats-overview-stat-value {
+        font-size: 1.65rem !important;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        color: #111827;
+    }
+
+    html.dark .fi-wi-stats-overview-stat-value {
+        color: #F9FAFB;
+    }
+
+    /* Label superior do card */
+    .fi-wi-stats-overview-stat-label {
+        font-size: 0.775rem;
+        font-weight: 600;
+        color: #6B7280;
+        letter-spacing: 0.025em;
+        text-transform: capitalize;
+    }
+
+    html.dark .fi-wi-stats-overview-stat-label {
+        color: #9CA3AF;
+    }
+
+    /* Descrição do card: quebra de linha limpa, tamanho legível */
+    .fi-wi-stats-overview-stat-description {
+        font-size: 0.775rem;
+        line-height: 1.45;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: none;
+        margin-top: 0.4rem;
+        color: color-mix(in srgb, #1F2937 68%, #79B4B0);
+    }
+
+    html.dark .fi-wi-stats-overview-stat-description {
+        color: #D1DFD2;
+    }
+
+    /* Alinha os cards de stats para que todos da mesma linha tenham a mesma altura */
+    .fi-wi-stats-overview-stats-ctn {
+        align-items: stretch;
+    }
+
+    /* Gráficos: proporção elegante e canvas contido */
+    .fi-wi-chart {
+        min-height: 310px;
+        border: 1px solid rgba(121, 180, 176, 0.22);
+    }
+
+    html.dark .fi-wi-chart {
+        border: 1px solid rgba(121, 180, 176, 0.16);
+    }
+
+    .fi-wi-chart canvas {
+        max-height: 235px !important;
+    }
+
+    /* Widget de tabela no dashboard */
+    .fi-wi-tbl {
+        border-radius: 16px;
+        border: 1px solid rgba(121, 180, 176, 0.22);
+        box-shadow: 0 10px 28px rgba(31, 41, 55, 0.06);
+        overflow: hidden;
+    }
+
+    html.dark .fi-wi-tbl {
+        border: 1px solid rgba(121, 180, 176, 0.16);
+    }
+
+    .fi-wi-tbl .fi-ta-ctn {
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    .fi-wi-tbl .fi-header-heading {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1F2937;
+    }
+
+    html.dark .fi-wi-tbl .fi-header-heading {
+        color: #D1DFD2;
+    }
+
+    /* Espaçamento e layout do formulário de filtros */
+    .fi-page-header-content-end {
+        padding-top: 0.25rem;
     }
 </style>
