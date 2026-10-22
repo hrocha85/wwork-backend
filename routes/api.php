@@ -16,9 +16,11 @@ use App\Http\Controllers\Api\V1\PublicAgencyController;
 use App\Http\Controllers\Api\V1\InviteRequestController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\TeamController;
+use App\Http\Controllers\Api\V1\TelemetryController;
 use App\Http\Controllers\Api\V1\VisitController;
 use Illuminate\Support\Facades\Route;
 
+Route::post('/telemetry/install-click', [TelemetryController::class, 'installClick']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/refresh', [AuthController::class, 'refresh']);

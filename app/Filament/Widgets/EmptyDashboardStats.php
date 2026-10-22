@@ -27,6 +27,10 @@ class EmptyDashboardStats extends StatsOverviewWidget
 
     protected static bool $isLazy = false;
 
+    protected int|string|array $columnSpan = 'full';
+
+    protected int|array|null $columns = 4;
+
     public static function canView(): bool
     {
         $user = auth('staff')->user();
@@ -52,13 +56,13 @@ class EmptyDashboardStats extends StatsOverviewWidget
                 ->descriptionIcon(Heroicon::OutlinedBuildingOffice2)
                 ->icon(Heroicon::OutlinedBuildingOffice2)
                 ->color('primary'),
-            Stat::make(__('panel.stats.where'), $top)
-                ->description(__('panel.stats.where_help'))
+            Stat::make(__('panel.stats.where'), $top['value'])
+                ->description($top['description'])
                 ->descriptionIcon(Heroicon::OutlinedMapPin)
                 ->icon(Heroicon::OutlinedMapPin)
                 ->color('primary'),
-            Stat::make(__('panel.stats.campaign'), $campaign)
-                ->description(__('panel.stats.campaign_help'))
+            Stat::make(__('panel.stats.campaign'), $campaign['value'])
+                ->description($campaign['description'])
                 ->descriptionIcon(Heroicon::OutlinedMegaphone)
                 ->icon(Heroicon::OutlinedMegaphone)
                 ->color('primary'),
@@ -80,53 +84,65 @@ class EmptyDashboardStats extends StatsOverviewWidget
                 ->descriptionIcon(Heroicon::OutlinedClipboardDocumentList)
                 ->icon(Heroicon::OutlinedClipboardDocumentList)
                 ->color('primary'),
-            Stat::make(__('panel.stats.plans'), $this->byPlan())
-                ->description(__('panel.stats.plans_help'))
-                ->descriptionIcon(Heroicon::OutlinedRectangleStack)
-                ->icon(Heroicon::OutlinedRectangleStack)
-                ->color('primary'),
-            Stat::make(__('panel.stats.failures'), (string) Subscription::query()->where('status', SubscriptionStatus::PastDue)->count())
-                ->description(__('panel.stats.failures_help'))
-                ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
-                ->icon(Heroicon::OutlinedExclamationTriangle)
-                ->color('warning'),
         ];
 
         $user = auth('staff')->user();
         if ($user instanceof User && $user->hasStaffPermission(StaffPermissionCode::ViewRevenue)) {
-            array_splice($stats, 6, 0, [
-                Stat::make(__('panel.stats.mrr'), $this->mrr())
-                    ->description(__('panel.stats.mrr_help'))
-                    ->descriptionIcon(Heroicon::OutlinedBanknotes)
-                    ->icon(Heroicon::OutlinedBanknotes)
-                    ->color('success'),
-                Stat::make(__('panel.stats.revenue'), $this->revenue($window['start'], $window['end']))
-                    ->description(__('panel.stats.revenue_help'))
-                    ->descriptionIcon(Heroicon::OutlinedBanknotes)
-                    ->icon(Heroicon::OutlinedBanknotes)
-                    ->color('success'),
-                Stat::make(__('panel.stats.at_risk'), $this->atRisk())
-                    ->description(__('panel.stats.at_risk_help'))
-                    ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
-                    ->icon(Heroicon::OutlinedExclamationTriangle)
-                    ->color('warning'),
-                Stat::make(__('panel.stats.ending'), $this->endingSoon())
-                    ->description(__('panel.stats.ending_help'))
-                    ->descriptionIcon(Heroicon::OutlinedCalendar)
-                    ->icon(Heroicon::OutlinedCalendar)
-                    ->color('warning'),
-                Stat::make(__('panel.stats.full'), $this->atCeiling())
-                    ->description(__('panel.stats.full_help'))
-                    ->descriptionIcon(Heroicon::OutlinedUserGroup)
-                    ->icon(Heroicon::OutlinedUserGroup)
-                    ->color('primary'),
-            ]);
+            $atRiskData = $this->atRisk();
+            $planData = $this->byPlan();
+
+            $stats[] = Stat::make(__('panel.stats.mrr'), $this->mrr())
+                ->description(__('panel.stats.mrr_help'))
+                ->descriptionIcon(Heroicon::OutlinedBanknotes)
+                ->icon(Heroicon::OutlinedBanknotes)
+                ->color('success');
+            $stats[] = Stat::make(__('panel.stats.revenue'), $this->revenue($window['start'], $window['end']))
+                ->description(__('panel.stats.revenue_help'))
+                ->descriptionIcon(Heroicon::OutlinedBanknotes)
+                ->icon(Heroicon::OutlinedBanknotes)
+                ->color('success');
+            $stats[] = Stat::make(__('panel.stats.at_risk'), $atRiskData['value'])
+                ->description($atRiskData['description'])
+                ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
+                ->icon(Heroicon::OutlinedExclamationTriangle)
+                ->color('warning');
+            $stats[] = Stat::make(__('panel.stats.ending'), $this->endingSoon())
+                ->description(__('panel.stats.ending_help'))
+                ->descriptionIcon(Heroicon::OutlinedCalendar)
+                ->icon(Heroicon::OutlinedCalendar)
+                ->color('warning');
+            $stats[] = Stat::make(__('panel.stats.full'), $this->atCeiling())
+                ->description(__('panel.stats.full_help'))
+                ->descriptionIcon(Heroicon::OutlinedUserGroup)
+                ->icon(Heroicon::OutlinedUserGroup)
+                ->color('primary');
+            $stats[] = Stat::make(__('panel.stats.plans'), $planData['value'])
+                ->description($planData['description'])
+                ->descriptionIcon(Heroicon::OutlinedRectangleStack)
+                ->icon(Heroicon::OutlinedRectangleStack)
+                ->color('primary');
+        } else {
+            $planData = $this->byPlan();
+
+            $stats[] = Stat::make(__('panel.stats.failures'), (string) Subscription::query()->where('status', SubscriptionStatus::PastDue)->count())
+                ->description(__('panel.stats.failures_help'))
+                ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
+                ->icon(Heroicon::OutlinedExclamationTriangle)
+                ->color('warning');
+            $stats[] = Stat::make(__('panel.stats.plans'), $planData['value'])
+                ->description($planData['description'])
+                ->descriptionIcon(Heroicon::OutlinedRectangleStack)
+                ->icon(Heroicon::OutlinedRectangleStack)
+                ->color('primary');
         }
 
         return $stats;
     }
 
-    private function topTrade(Builder $created, int $total, mixed $previousStart, mixed $previousEnd): string
+    /**
+     * @return array{value: string, description: string}
+     */
+    private function topTrade(Builder $created, int $total, mixed $previousStart, mixed $previousEnd): array
     {
         $row = (clone $created)
             ->selectRaw('trade, count(*) as total')
@@ -135,7 +151,10 @@ class EmptyDashboardStats extends StatsOverviewWidget
             ->first();
 
         if ($row === null || $total === 0) {
-            return '—';
+            return [
+                'value' => '—',
+                'description' => __('panel.stats.where_help'),
+            ];
         }
 
         $previous = Agency::query()
@@ -145,10 +164,18 @@ class EmptyDashboardStats extends StatsOverviewWidget
         $share = (int) round(((int) $row->total / $total) * 100);
         $trade = PanelLabels::trade($row->trade);
 
-        return $trade.' '.$row->total.' ('.$share.'%) · '.$previous.' → '.$row->total;
+        $arrow = $previous <= (int) $row->total ? '↑' : '↓';
+
+        return [
+            'value' => "{$trade} ({$share}%)",
+            'description' => "{$row->total} agências · anterior: {$previous} {$arrow} {$row->total}",
+        ];
     }
 
-    private function topCampaign(Builder $created): string
+    /**
+     * @return array{value: string, description: string}
+     */
+    private function topCampaign(Builder $created): array
     {
         $row = $created
             ->selectRaw("coalesce(nullif(utm_campaign, ''), nullif(utm_source, ''), 'Direct') as campaign, count(*) as total")
@@ -157,24 +184,48 @@ class EmptyDashboardStats extends StatsOverviewWidget
             ->first();
 
         if ($row === null) {
-            return '—';
+            return [
+                'value' => '—',
+                'description' => __('panel.stats.campaign_help'),
+            ];
         }
 
         $name = $row->campaign === 'Direct' ? __('panel.campaign.direct') : $row->campaign;
 
-        return $name.' '.$row->total;
+        return [
+            'value' => $name,
+            'description' => "{$row->total} " . ($row->total === 1 ? 'agência' : 'agências') . ($row->campaign === 'Direct' ? ' · Sem tag UTM' : ''),
+        ];
     }
 
-    private function byPlan(): string
+    /**
+     * @return array{value: string, description: string}
+     */
+    private function byPlan(): array
     {
+        $activeCount = Subscription::query()->where('status', SubscriptionStatus::Active)->count();
         $parts = [];
         foreach (PlanCode::cases() as $plan) {
-            $parts[] = PanelLabels::plan($plan).' '.Subscription::query()->where('plan', $plan)->count();
+            $count = Subscription::query()->where('plan', $plan)->count();
+            if ($count > 0) {
+                $parts[] = PanelLabels::plan($plan)." {$count}";
+            }
         }
-        $parts[] = __('panel.status.complimentary').' '.Subscription::query()->where('status', SubscriptionStatus::Complimentary)->count();
-        $parts[] = __('panel.status.cancelled').' '.Subscription::query()->where('status', SubscriptionStatus::Cancelled)->count();
+        $complimentary = Subscription::query()->where('status', SubscriptionStatus::Complimentary)->count();
+        if ($complimentary > 0) {
+            $parts[] = __('panel.status.complimentary')." {$complimentary}";
+        }
+        $cancelled = Subscription::query()->where('status', SubscriptionStatus::Cancelled)->count();
+        if ($cancelled > 0) {
+            $parts[] = __('panel.status.cancelled')." {$cancelled}";
+        }
 
-        return implode(' · ', $parts);
+        $summary = empty($parts) ? __('panel.stats.plans_help') : implode(' · ', $parts);
+
+        return [
+            'value' => $activeCount === 1 ? '1 ativa' : "{$activeCount} ativas",
+            'description' => $summary,
+        ];
     }
 
     private function mrr(): string
@@ -212,19 +263,28 @@ class EmptyDashboardStats extends StatsOverviewWidget
         return $rows->map(fn ($row): string => $this->money((int) $row->total, (string) $row->currency))->implode(' · ');
     }
 
-    private function atRisk(): string
+    /**
+     * @return array{value: string, description: string}
+     */
+    private function atRisk(): array
     {
-        $rows = Subscription::query()
-            ->where('status', SubscriptionStatus::PastDue)
+        $pastDueQuery = Subscription::query()->where('status', SubscriptionStatus::PastDue);
+        $count = (clone $pastDueQuery)->count();
+        $rows = $pastDueQuery
             ->selectRaw('currency, sum(amount_minor) as total')
             ->groupBy('currency')
             ->get();
 
-        if ($rows->isEmpty()) {
-            return '—';
-        }
+        $val = $rows->isEmpty()
+            ? '—'
+            : $rows->map(fn ($row): string => PanelLabels::money((int) $row->total, (string) $row->currency))->implode(' · ');
 
-        return $rows->map(fn ($row): string => PanelLabels::money((int) $row->total, (string) $row->currency))->implode(' · ');
+        return [
+            'value' => $val,
+            'description' => $count > 0
+                ? "{$count} em atraso · convite suspenso"
+                : __('panel.stats.at_risk_help'),
+        ];
     }
 
     private function endingSoon(): string
