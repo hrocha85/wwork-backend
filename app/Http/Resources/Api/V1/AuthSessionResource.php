@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Enums\MembershipRole;
+use App\Enums\VisitStatus;
 use App\Models\Agency;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -201,6 +202,9 @@ class AuthSessionResource
             $payload['bio'] = $agency->bio;
             $payload['website'] = $agency->website;
             $payload['public_slug'] = $agency->public_slug;
+            $payload['average_rating'] = (float) $agency->average_rating;
+            $payload['review_count'] = $agency->reviews()->count();
+            $payload['completed_count'] = $agency->visits()->where('status', VisitStatus::Done)->count();
         }
 
         return $payload;

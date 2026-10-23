@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Marketplace\ShowPublicAgency;
 use App\Actions\Marketplace\UpdatePublicProfile;
+use App\Enums\VisitStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\PortfolioPhoto;
@@ -25,6 +26,36 @@ class PublicAgencyController extends Controller
     public function reviews(string $slug, ShowPublicAgency $show): JsonResponse
     {
         return response()->json($show->reviews($slug));
+    }
+
+    public function completed(string $slug, ShowPublicAgency $show): JsonResponse
+    {
+        $agency = $show->agency($slug);
+        $visits = $agency->visits()
+            ->where('status', VisitStatus::Done)
+            ->with('goals')
+            ->orderByDesc('service_date')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get();
+
+        $reviewedIds = \App\Models\Review::query()
+            ->whereIn('visit_id', $visits->pluck('id'))
+            ->get()
+            ->keyBy('visit_id');
+
+        return response()->json([
+            'completed' => $visits->map(function ($visit) use ($reviewedIds): array {
+                $review = $reviewedIds->get($visit->id);
+
+                return [
+                    'description' => $visit->description,
+                    'service_date' => $visit->service_date->toDateString(),
+                    'has_review' => $review !== null,
+                    'rating' => $review?->rating,
+                ];
+            })->values()->all(),
+        ]);
     }
 
     public function logo(string $slug, ShowPublicAgency $show): StreamedResponse

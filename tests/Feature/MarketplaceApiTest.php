@@ -128,6 +128,91 @@ class MarketplaceApiTest extends TestCase
         ]);
     }
 
+    public function test_public_agency_returns_indicators_and_completed_work(): void
+    {
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+        $agency = $owner->membership->agency;
+        $agency->update([
+            'public_slug' => 'clean-masters',
+            'trade' => 'cleaning',
+            'average_rating' => 5.0,
+        ]);
+
+        $client = Client::query()->where('agency_id', $agency->id)->firstOrFail();
+
+        // Create completed visit
+        $visit = Visit::query()->create([
+            'agency_id' => $agency->id,
+            'client_id' => $client->id,
+            'assignee_id' => $owner->id,
+            'service_date' => '2026-10-15',
+            'service_time' => '10:00',
+            'description' => 'Limpeza de Apartamento',
+            'price_pence' => 5000,
+            'lat' => 51.5,
+            'lng' => -0.1,
+            'status' => 'done',
+        ]);
+
+        // Create in-progress visit (should not count as completed)
+        Visit::query()->create([
+            'agency_id' => $agency->id,
+            'client_id' => $client->id,
+            'assignee_id' => $owner->id,
+            'service_date' => '2026-10-20',
+            'service_time' => '14:00',
+            'description' => 'Serviço em andamento',
+            'price_pence' => 3000,
+            'lat' => 51.5,
+            'lng' => -0.1,
+            'status' => 'todo',
+        ]);
+
+        \App\Models\Review::query()->create([
+            'agency_id' => $agency->id,
+            'client_id' => $client->id,
+            'visit_id' => $visit->id,
+            'rating' => 5,
+            'comment' => 'Excelente trabalho!',
+        ]);
+
+        // Check public profile indicators
+        $res = $this->getJson('/api/v1/agency/clean-masters')
+            ->assertOk()
+            ->assertJsonPath('name', $agency->name)
+            ->assertJsonPath('trade', 'cleaning')
+            ->assertJsonPath('review_count', 1)
+            ->assertJsonPath('completed_count', 1)
+            ->assertJsonPath('rating_distribution.5', 1)
+            ->assertJsonPath('rating_distribution.4', 0);
+
+        // Check completed work endpoint
+        $completedRes = $this->getJson('/api/v1/agency/clean-masters/completed')
+            ->assertOk();
+
+        $completedData = $completedRes->json('completed');
+        $this->assertCount(1, $completedData);
+        $this->assertSame('Limpeza de Apartamento', $completedData[0]['description']);
+        $this->assertTrue($completedData[0]['has_review']);
+        $this->assertSame(5, $completedData[0]['rating']);
+
+        // Verify privacy: client name, address, price, or client_id are NOT in the payload
+        $this->assertArrayNotHasKey('client_name', $completedData[0]);
+        $this->assertArrayNotHasKey('client_id', $completedData[0]);
+        $this->assertArrayNotHasKey('price_pence', $completedData[0]);
+        $this->assertArrayNotHasKey('price', $completedData[0]);
+        $this->assertArrayNotHasKey('address', $completedData[0]);
+
+        // Check AuthSession me returns reputation indicators
+        $this->postJson('/api/v1/login', [
+            'email' => 'owner@wwork.test',
+            'password' => 'demo-seed-test',
+        ])->assertOk()
+            ->assertJsonPath('agency.average_rating', 5)
+            ->assertJsonPath('agency.review_count', 1)
+            ->assertJsonPath('agency.completed_count', 1);
+    }
+
     private function agency(string $name, float $rating, float $lat, float $lng, string $service): Agency
     {
         $agency = Agency::query()->create([
