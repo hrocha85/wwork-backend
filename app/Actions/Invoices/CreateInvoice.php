@@ -3,6 +3,7 @@
 namespace App\Actions\Invoices;
 
 use App\Enums\InvoiceStatus;
+use App\Enums\Locale;
 use App\Enums\PayBy;
 use App\Enums\VisitStatus;
 use App\Models\Client;
@@ -91,8 +92,20 @@ class CreateInvoice
                 throw new ApiException(ErrorCodes::INVOICE_CLIENT_MISMATCH, 422);
             }
 
-            $number = ((int) Invoice::query()->where('agency_id', $membership->agency_id)->max('number')) + 1;
+            $number = ((int) Invoice::withTrashed()->where('agency_id', $membership->agency_id)->max('number')) + 1;
             $total = (int) array_sum($amounts);
+
+            $resolvedLocale = null;
+            if (! empty($input['locale'])) {
+                $resolvedLocale = Locale::tryFrom($input['locale']);
+            }
+            if ($resolvedLocale === null && request()->hasHeader('Accept-Language')) {
+                $pref = strtolower(substr(request()->header('Accept-Language'), 0, 2));
+                $resolvedLocale = Locale::tryFrom($pref);
+            }
+            if ($resolvedLocale === null) {
+                $resolvedLocale = $actor->locale ?? Locale::Pt;
+            }
 
             $invoice = Invoice::query()->create([
                 'agency_id' => $membership->agency_id,
@@ -101,7 +114,7 @@ class CreateInvoice
                 'number' => $number,
                 'status' => InvoiceStatus::ToSend,
                 'total_pence' => $total,
-                'locale' => $actor->locale,
+                'locale' => $resolvedLocale,
                 'invoice_region' => $membership->agency->invoice_region,
                 'pay_by' => $payBy?->value,
                 'pay_link' => $payLink,

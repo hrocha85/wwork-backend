@@ -11,6 +11,7 @@ use App\Policies\InvoicePolicy;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\InvoiceShareToken;
 use Illuminate\Support\Carbon;
 
 class InvoiceResource
@@ -148,6 +149,7 @@ class InvoiceResource
             'paid_method' => $invoice->paid_method?->value,
             'pay_by' => $invoice->pay_by?->value,
             'pay_link' => $invoice->pay_link,
+            'pdf_url' => $invoice->pdf_path ? rtrim((string) config('app.url'), '/').'/api/v1/invoices/share/'.InvoiceShareToken::issue($invoice->id) : null,
             'lines' => $invoice->lines->map(fn (InvoiceLine $line): array => [
                 'id' => $line->id,
                 'visit_id' => $line->visit_id,

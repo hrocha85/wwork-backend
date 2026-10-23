@@ -25,6 +25,7 @@ class StoreInvoiceRequest extends FormRequest
             'lines.*.price_pence' => ['required', 'integer', 'min:1'],
             'pay_by' => ['nullable', 'in:link,in_person'],
             'pay_link' => ['nullable', 'string', 'url'],
+            'locale' => ['sometimes', 'string', 'in:en,pt,es,pl,ro'],
         ];
     }
 }
