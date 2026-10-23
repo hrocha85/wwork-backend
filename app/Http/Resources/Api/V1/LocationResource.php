@@ -49,7 +49,7 @@ class LocationResource
 
         $rows = Membership::query()
             ->where('agency_id', $membership->agency_id)
-            ->whereHas('user', fn ($query) => $query->where('last_located_at', '>', $cutoff))
+            ->whereHas('user', fn ($query) => $query->whereNotNull('last_lat')->whereNotNull('last_lng'))
             ->with('user')
             ->get()
             ->sortBy(fn (Membership $row): string => $row->user_id === $actor->id ? '0' : '1'.$row->user->name)
@@ -61,6 +61,7 @@ class LocationResource
                 [$status, $since] = self::presence($row, $visit, $timezone, $today);
                 $user = $row->user;
                 $next = ($upcoming->get($row->user_id) ?? collect())->first();
+                $isOnline = in_array($status, ['working', 'traveling', 'online'], true);
 
                 return [
                     'user_id' => $row->user_id,
@@ -71,7 +72,11 @@ class LocationResource
                     'at' => $user->last_located_at === null
                         ? null
                         : Carbon::parse($user->last_located_at)->timezone($timezone)->toIso8601String(),
+                    'last_seen_at' => $user->last_seen_at === null
+                        ? null
+                        : Carbon::parse($user->last_seen_at)->timezone($timezone)->toIso8601String(),
                     'self' => $row->user_id === $actor->id,
+                    'online' => $isOnline,
                     'status' => $status,
                     'since' => $since,
                     'current_client' => $visit?->client?->name,

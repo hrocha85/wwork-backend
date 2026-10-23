@@ -63,7 +63,7 @@ class LocationApiTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'locations' => [[
-                    'user_id', 'name', 'has_avatar', 'lat', 'lng', 'at', 'self', 'status', 'since',
+                    'user_id', 'name', 'has_avatar', 'lat', 'lng', 'at', 'self', 'status', 'since', 'online', 'last_seen_at',
                 ]],
             ])
             ->assertJsonPath('locations.0.user_id', $owner->id)
@@ -73,6 +73,7 @@ class LocationApiTest extends TestCase
             ->assertJsonPath('locations.0.self', true)
             ->assertJsonPath('locations.0.has_avatar', false)
             ->assertJsonPath('locations.0.status', 'online')
+            ->assertJsonPath('locations.0.online', true)
             ->assertJsonPath('locations.0.since', null);
 
         $owner->forceFill(['avatar_path' => 'users/'.$owner->id.'/avatar-test.jpg'])->save();
@@ -84,7 +85,7 @@ class LocationApiTest extends TestCase
         $this->postJson('/api/v1/logout')->assertNoContent();
     }
 
-    public function test_invited_point_is_listed_for_the_owner_and_hidden_after_two_minutes(): void
+    public function test_invited_point_is_listed_for_the_owner_and_retained_as_offline_when_stale(): void
     {
         $invited = User::query()->where('email', 'invited@wwork.test')->firstOrFail();
 
@@ -119,9 +120,25 @@ class LocationApiTest extends TestCase
         $this->assertContains($invited->id, $ids);
         $this->assertTrue(collect($fresh->json('locations'))->firstWhere('user_id', $invited->id)['self'] === false);
 
-        $invited->forceFill(['last_located_at' => now()->subMinutes(3)])->save();
+        // Stale timestamp (3 minutes ago) simulates disconnect or closed browser
+        $invited->forceFill([
+            'last_located_at' => now()->subMinutes(3),
+            'last_seen_at' => now()->subMinutes(3),
+        ])->save();
 
         $stale = $this->getJson('/api/v1/team/locations')->assertOk();
-        $this->assertNotContains($invited->id, collect($stale->json('locations'))->pluck('user_id')->all());
+        $staleItem = collect($stale->json('locations'))->firstWhere('user_id', $invited->id);
+        $this->assertNotNull($staleItem, 'Offline user with last known coordinates should still be returned');
+        $this->assertFalse($staleItem['online']);
+        $this->assertSame('recent', $staleItem['status']);
+        $this->assertEquals(51.512, $staleItem['lat']);
+        $this->assertEquals(-0.118, $staleItem['lng']);
+
+        // User with no location coordinates should not appear on the map
+        $invited->refresh();
+        $invited->forceFill(['last_lat' => null, 'last_lng' => null])->save();
+        $noLoc = $this->getJson('/api/v1/team/locations')->assertOk();
+        $this->assertNull($invited->fresh()->last_lat);
+        $this->assertNotContains($invited->id, collect($noLoc->json('locations'))->pluck('user_id')->all());
     }
 }
