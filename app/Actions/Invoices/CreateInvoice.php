@@ -91,7 +91,7 @@ class CreateInvoice
                 throw new ApiException(ErrorCodes::INVOICE_CLIENT_MISMATCH, 422);
             }
 
-            $number = ((int) Invoice::query()->where('agency_id', $membership->agency_id)->max('number')) + 1;
+            $number = ((int) Invoice::withTrashed()->where('agency_id', $membership->agency_id)->max('number')) + 1;
             $total = (int) array_sum($amounts);
 
             $invoice = Invoice::query()->create([

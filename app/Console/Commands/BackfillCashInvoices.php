@@ -37,7 +37,7 @@ class BackfillCashInvoices extends Command
         $created = 0;
         foreach ($visits as $visit) {
             $invoice = DB::transaction(function () use ($visit): Invoice {
-                $number = ((int) Invoice::query()->where('agency_id', $visit->agency_id)->max('number')) + 1;
+                $number = ((int) Invoice::withTrashed()->where('agency_id', $visit->agency_id)->max('number')) + 1;
                 $invoice = Invoice::query()->create([
                     'agency_id' => $visit->agency_id,
                     'client_id' => $visit->client_id,
