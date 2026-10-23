@@ -50,6 +50,7 @@ Route::get('/agency/{slug}/logo', [PublicAgencyController::class, 'logo']);
 Route::get('/agency/{slug}/photos/{photo}', [PublicAgencyController::class, 'photo']);
 Route::get('/agency/{slug}/avatars/{client}', [PublicAgencyController::class, 'avatar']);
 Route::get('/agency/{slug}/reviews', [PublicAgencyController::class, 'reviews']);
+Route::get('/agency/{slug}/completed', [PublicAgencyController::class, 'completed']);
 Route::get('/agency/{slug}', [PublicAgencyController::class, 'show'])->where('slug', '(?!logo$)[^/]+');
 Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook']);
 Route::post('/setup-intent', [SubscriptionController::class, 'setup']);

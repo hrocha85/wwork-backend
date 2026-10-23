@@ -3,6 +3,7 @@
 namespace App\Actions\Marketplace;
 
 use App\Enums\SubscriptionStatus;
+use App\Enums\VisitStatus;
 use App\Models\Agency;
 use App\Models\Client;
 use App\Models\PortfolioPhoto;
@@ -23,12 +24,15 @@ class ShowPublicAgency
             && $agency->bookingHours()->exists();
         $status = $agency->subscription?->status;
 
+        $reviews = $agency->reviews;
+
         return [
             'name' => $agency->name,
             'bio' => $agency->bio,
             'website' => $agency->website,
             'phone' => $agency->phone,
             'has_logo' => filled($agency->logo_path),
+            'trade' => $agency->trade?->value,
             'verified' => in_array($status, [
                 SubscriptionStatus::Active,
                 SubscriptionStatus::Complimentary,
@@ -38,6 +42,11 @@ class ShowPublicAgency
             'booking_token' => $ready ? $agency->booking_token : null,
             'currency' => $agency->currency,
             'average_rating' => (float) $agency->average_rating,
+            'review_count' => $reviews->count(),
+            'completed_count' => $agency->visits()
+                ->where('status', VisitStatus::Done)
+                ->count(),
+            'rating_distribution' => $this->ratingDistribution($reviews),
             'services' => $agency->bookingServices->map(fn ($service): array => [
                 'name' => $service->name,
                 'price_pence' => $service->price_pence,
@@ -57,13 +66,16 @@ class ShowPublicAgency
         $agency = $this->agency($slug);
 
         return [
-            'reviews' => $agency->reviews->map(fn (Review $review): array => [
-                'rating' => $review->rating,
-                'comment' => $review->comment,
-                'client_name' => $review->client->name,
-                'client_id' => $review->client_id,
-                'has_avatar' => filled($review->client->avatar_path),
-            ])->values()->all(),
+            'reviews' => $agency->reviews
+                ->sortByDesc('created_at')
+                ->map(fn (Review $review): array => [
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'client_name' => $review->client->name,
+                    'client_id' => $review->client_id,
+                    'has_avatar' => filled($review->client->avatar_path),
+                    'created_at' => $review->created_at?->toIso8601String(),
+                ])->values()->all(),
         ];
     }
 
@@ -79,5 +91,17 @@ class ShowPublicAgency
         }
 
         return $agency;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function ratingDistribution(\Illuminate\Support\Collection $reviews): array
+    {
+        $counts = $reviews->groupBy('rating')->map->count();
+
+        return collect(range(1, 5))->mapWithKeys(
+            fn (int $star): array => [$star => $counts->get($star, 0)]
+        )->all();
     }
 }
