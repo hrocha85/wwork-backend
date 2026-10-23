@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ClientsApiTest extends TestCase
@@ -343,8 +344,9 @@ class ClientsApiTest extends TestCase
             ->assertJsonPath('invoices.0.total_pence', 8000);
 
         $pdfUrl = $res->json('invoices.0.pdf_url');
-        $this->assertNotEmpty($pdfUrl);
-        $this->assertStringContainsString('/api/v1/invoices/'.$invoice->id.'/pdf', $pdfUrl);
+        $this->assertStringContainsString('/api/v1/invoices/share/', $pdfUrl);
+        Storage::disk('local')->put('invoices/test.pdf', '%PDF-1.4 dummy content');
+        $this->get($pdfUrl)->assertOk()->assertHeader('Content-Type', 'application/pdf');
 
         // Test non-existent client returns 404
         $this->getJson('/api/v1/clients/999999')
