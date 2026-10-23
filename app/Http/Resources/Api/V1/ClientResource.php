@@ -12,6 +12,7 @@ use App\Policies\ClientPolicy;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\InvoiceShareToken;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -93,7 +94,7 @@ class ClientResource
                 'service_date' => $invoice->lines->min(fn (InvoiceLine $line) => $line->service_date->toDateString()),
                 'total_pence' => $invoice->total_pence,
                 'status' => $invoice->status->value,
-                'pdf_url' => $invoice->pdf_path ? route('invoices.pdf', ['invoice' => $invoice->id]) : null,
+                'pdf_url' => $invoice->pdf_path ? rtrim((string) config('app.url'), '/').'/api/v1/invoices/share/'.InvoiceShareToken::issue($invoice->id) : null,
             ])
             ->values()
             ->all();

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\InvoiceStatus;
+use App\Enums\PaidMethod;
 use App\Enums\PaymentMethod;
 use App\Enums\PayBy;
 use App\Models\Invoice;
@@ -22,16 +24,30 @@ class InvoicePdf
         return $path;
     }
 
-    public function render(Invoice $invoice): string
+    public function render(Invoice $invoice, ?string $overrideLocale = null): string
     {
         $invoice->loadMissing(['agency.ownerMembership.user', 'client', 'lines']);
         $agency = $invoice->agency;
-        $locale = $invoice->locale->value;
+        $candidateLocale = $overrideLocale
+            ?? request()?->query('locale')
+            ?? ($invoice->locale?->value ?? (is_string($invoice->locale) ? $invoice->locale : null))
+            ?? (auth()->user()?->locale?->value ?? (is_string(auth()->user()?->locale) ? auth()->user()?->locale : null))
+            ?? ($agency->ownerMembership?->user?->locale?->value ?? (is_string($agency->ownerMembership?->user?->locale) ? $agency->ownerMembership?->user?->locale : null))
+            ?? (request()?->hasHeader('Accept-Language') ? strtolower(substr(request()->header('Accept-Language'), 0, 2)) : null)
+            ?? 'pt';
+        $locale = in_array($candidateLocale, ['en', 'pt', 'es', 'pl', 'ro'], true) ? $candidateLocale : 'pt';
         $labels = $this->labels($locale);
         $region = (string) ($invoice->invoice_region ?? $agency->invoice_region ?? 'GB');
         $labels['vat'] = $this->taxLabel($region);
         $total = $this->money((int) $invoice->total_pence, (string) $agency->currency, $region);
+
+        $isPaid = $invoice->status === InvoiceStatus::Paid || $invoice->paid_at !== null;
+        $paidAt = $invoice->paid_at ? Carbon::parse($invoice->paid_at)->timezone($agency->timezone)->format('d/m/Y') : null;
+        $paidMethodKey = $invoice->paid_method?->value ?? null;
+        $paidMethodLabel = $paidMethodKey ? ($labels[$paidMethodKey] ?? ucfirst($paidMethodKey)) : null;
+
         $html = view('invoices.pdf', [
+            'locale' => $locale,
             'labels' => $labels,
             'title' => mb_strtoupper($labels['invoice']),
             'agencyName' => $agency->name,
@@ -54,6 +70,10 @@ class InvoicePdf
             'lines' => $invoice->lines,
             'total' => $total,
             'money' => fn (int $pence): string => $this->money($pence, (string) $agency->currency, $region),
+            'isPaid' => $isPaid,
+            'paidAt' => $paidAt,
+            'paidMethodLabel' => $paidMethodLabel,
+            'paidNote' => $invoice->paid_note,
         ])->render();
 
         $options = new Options;
@@ -113,29 +133,162 @@ class InvoicePdf
      */
     private function labels(string $locale): array
     {
-        $shared = [
-            'bill_to' => 'BILL TO',
-            'from' => 'FROM',
-            'number' => 'INVOICE NUMBER',
-            'date' => 'DATE',
-            'due' => 'DUE',
-            'amount_due' => 'AMOUNT DUE',
-            'on_receipt' => 'On receipt',
-            'item' => 'ITEM',
-            'notes' => 'HOW TO PAY',
-            'subtotal' => 'SUBTOTAL',
-            'bank_transfer' => 'Bank transfer',
-            'cash' => 'Cash',
-            'other' => 'Other',
-            'card_link' => 'Card via link',
-            'in_person' => 'In person',
-        ];
         $catalogs = [
-            'en' => ['invoice' => 'Invoice', 'description' => 'Description', 'amount' => 'Amount', 'total' => 'Total', 'vat' => 'VAT'] + $shared,
-            'pt' => ['invoice' => 'Fatura', 'description' => 'Descrição', 'amount' => 'Valor', 'total' => 'Total', 'vat' => 'IVA'] + $shared,
-            'pl' => ['invoice' => 'Faktura', 'description' => 'Opis', 'amount' => 'Kwota', 'total' => 'Suma', 'vat' => 'VAT'] + $shared,
-            'ro' => ['invoice' => 'Factură', 'description' => 'Descriere', 'amount' => 'Sumă', 'total' => 'Total', 'vat' => 'TVA'] + $shared,
-            'es' => ['invoice' => 'Factura', 'description' => 'Descripción', 'amount' => 'Importe', 'total' => 'Total', 'vat' => 'IVA'] + $shared,
+            'en' => [
+                'invoice' => 'Invoice',
+                'description' => 'Description',
+                'amount' => 'Amount',
+                'total' => 'Total',
+                'subtotal' => 'SUBTOTAL',
+                'vat' => 'VAT',
+                'bill_to' => 'BILL TO',
+                'from' => 'FROM',
+                'number' => 'INVOICE NUMBER',
+                'date' => 'DATE',
+                'due' => 'DUE',
+                'amount_due' => 'AMOUNT DUE',
+                'on_receipt' => 'On receipt',
+                'item' => 'ITEM',
+                'notes' => 'HOW TO PAY',
+                'bank_transfer' => 'Bank transfer',
+                'cash' => 'Cash',
+                'card' => 'Card',
+                'pix' => 'Pix',
+                'other' => 'Other',
+                'card_link' => 'Card via link',
+                'in_person' => 'In person',
+                'paid' => 'PAID',
+                'paid_at' => 'PAID ON',
+                'status' => 'STATUS',
+                'amount_paid' => 'AMOUNT PAID',
+                'paid_receipt' => 'PAYMENT RECEIPT',
+                'paid_method' => 'Payment method',
+                'paid_note' => 'Note',
+            ],
+            'pt' => [
+                'invoice' => 'Fatura',
+                'description' => 'Descrição',
+                'amount' => 'Valor',
+                'total' => 'Total',
+                'subtotal' => 'SUBTOTAL',
+                'vat' => 'IVA',
+                'bill_to' => 'FATURAR A',
+                'from' => 'DE',
+                'number' => 'NÚMERO DA FATURA',
+                'date' => 'DATA',
+                'due' => 'VENCIMENTO',
+                'amount_due' => 'VALOR A PAGAR',
+                'on_receipt' => 'À vista',
+                'item' => 'ITEM',
+                'notes' => 'COMO PAGAR',
+                'bank_transfer' => 'Transferência bancária',
+                'cash' => 'Dinheiro',
+                'card' => 'Cartão',
+                'pix' => 'Pix',
+                'other' => 'Outro',
+                'card_link' => 'Cartão via link',
+                'in_person' => 'Presencial',
+                'paid' => 'PAGO',
+                'paid_at' => 'PAGO EM',
+                'status' => 'STATUS',
+                'amount_paid' => 'VALOR PAGO',
+                'paid_receipt' => 'COMPROVANTE DE PAGAMENTO',
+                'paid_method' => 'Forma de pagamento',
+                'paid_note' => 'Observação',
+            ],
+            'es' => [
+                'invoice' => 'Factura',
+                'description' => 'Descripción',
+                'amount' => 'Importe',
+                'total' => 'Total',
+                'subtotal' => 'SUBTOTAL',
+                'vat' => 'IVA',
+                'bill_to' => 'FACTURAR A',
+                'from' => 'DE',
+                'number' => 'NÚMERO DE FACTURA',
+                'date' => 'FECHA',
+                'due' => 'VENCIMIENTO',
+                'amount_due' => 'IMPORTE A PAGAR',
+                'on_receipt' => 'Al contado',
+                'item' => 'CONCEPTO',
+                'notes' => 'CÓMO PAGAR',
+                'bank_transfer' => 'Transferencia bancaria',
+                'cash' => 'Efectivo',
+                'card' => 'Tarjeta',
+                'pix' => 'Pix',
+                'other' => 'Otro',
+                'card_link' => 'Tarjeta por enlace',
+                'in_person' => 'En persona',
+                'paid' => 'PAGADO',
+                'paid_at' => 'PAGADO EL',
+                'status' => 'ESTADO',
+                'amount_paid' => 'IMPORTE PAGADO',
+                'paid_receipt' => 'JUSTIFICANTE DE PAGO',
+                'paid_method' => 'Método de pago',
+                'paid_note' => 'Nota',
+            ],
+            'pl' => [
+                'invoice' => 'Faktura',
+                'description' => 'Opis',
+                'amount' => 'Kwota',
+                'total' => 'Total',
+                'subtotal' => 'SUMA CZĘŚCIOWA',
+                'vat' => 'VAT',
+                'bill_to' => 'NABYWCA',
+                'from' => 'SPRZEDAWCA',
+                'number' => 'NUMER FAKTURY',
+                'date' => 'DATA',
+                'due' => 'TERMIN PŁATNOŚCI',
+                'amount_due' => 'DO ZAPŁATY',
+                'on_receipt' => 'W dniu otrzymania',
+                'item' => 'POZYCJA',
+                'notes' => 'SPOSÓB PŁATNOŚCI',
+                'bank_transfer' => 'Przelew bankowy',
+                'cash' => 'Gotówka',
+                'card' => 'Karta',
+                'pix' => 'Pix',
+                'other' => 'Inne',
+                'card_link' => 'Karta przez link',
+                'in_person' => 'Osobiście',
+                'paid' => 'OPŁACONA',
+                'paid_at' => 'DATA PŁATNOŚCI',
+                'status' => 'STATUS',
+                'amount_paid' => 'KWOTA ZAPŁACONA',
+                'paid_receipt' => 'POTWIERDZENIE PŁATNOŚCI',
+                'paid_method' => 'Metoda płatności',
+                'paid_note' => 'Uwaga',
+            ],
+            'ro' => [
+                'invoice' => 'Factură',
+                'description' => 'Descriere',
+                'amount' => 'Sumă',
+                'total' => 'Total',
+                'subtotal' => 'SUBTOTAL',
+                'vat' => 'TVA',
+                'bill_to' => 'FACTURAT CĂTRE',
+                'from' => 'DE LA',
+                'number' => 'NUMĂR FACTURĂ',
+                'date' => 'DATA',
+                'due' => 'SCADENȚĂ',
+                'amount_due' => 'TOTAL DE PLATĂ',
+                'on_receipt' => 'La primire',
+                'item' => 'ARTICOL',
+                'notes' => 'MODALITATE DE PLATĂ',
+                'bank_transfer' => 'Transfer bancar',
+                'cash' => 'Numerar',
+                'card' => 'Card',
+                'pix' => 'Pix',
+                'other' => 'Altele',
+                'card_link' => 'Card prin link',
+                'in_person' => 'În persoană',
+                'paid' => 'PLĂTIT',
+                'paid_at' => 'PLĂTIT LA',
+                'status' => 'STATUS',
+                'amount_paid' => 'SUMĂ PLĂTITĂ',
+                'paid_receipt' => 'DOVADĂ DE PLATĂ',
+                'paid_method' => 'Metodă de plată',
+                'paid_note' => 'Notă',
+            ],
         ];
 
         return $catalogs[$locale] ?? $catalogs['en'];

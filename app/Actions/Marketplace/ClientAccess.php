@@ -14,6 +14,7 @@ use App\Policies\ClientPolicy;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\InvoiceShareToken;
 use App\Support\PhoneNumber;
 use App\Support\StoredImage;
 use Illuminate\Http\UploadedFile;
@@ -185,7 +186,7 @@ class ClientAccess
                 'total_pence' => $invoice->total_pence,
                 'currency' => $invoice->agency->currency,
                 'status' => $invoice->status->value,
-                'pdf_url' => $invoice->pdf_path ? route('invoices.client.pdf', ['invoice' => $invoice->id]) : null,
+                'pdf_url' => $invoice->pdf_path ? rtrim((string) config('app.url'), '/').'/api/v1/invoices/share/'.InvoiceShareToken::issue($invoice->id) : null,
             ])->values()->all(),
             'place' => $place === null ? null : [
                 'lat' => (float) $place->lat,

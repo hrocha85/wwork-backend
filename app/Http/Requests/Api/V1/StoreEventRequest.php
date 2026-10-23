@@ -21,6 +21,7 @@ class StoreEventRequest extends FormRequest
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
             'payment_method' => ['required_if:type,check_out', 'in:cash,invoice'],
+            'locale' => ['nullable', 'string', 'in:en,pt,es,pl,ro'],
         ];
     }
 }

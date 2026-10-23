@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\User;
 use App\Models\VisitGoal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -204,6 +205,42 @@ class FieldApiTest extends TestCase
         $this->assertStringContainsString('/api/v1/invoices/share/', (string) $issued->json('invoice.pdf_url'));
         $this->assertDatabaseCount('invoices', 2);
         $this->assertDatabaseHas('payouts', ['visit_id' => $billed, 'user_id' => $partner->id]);
+    }
+
+    public function test_checkout_with_invoice_increments_number_even_with_soft_deleted_invoices(): void
+    {
+        $owner = User::query()->where('email', 'owner@wwork.test')->firstOrFail();
+        $this->login('owner@wwork.test');
+        $client = $this->house($owner);
+
+        $first = $this->postJson('/api/v1/visits', $this->body($client, $owner->id))->assertCreated()->json('id');
+        $this->postJson('/api/v1/visits/'.$first.'/events', ['type' => 'check_in', 'lat' => 51.5, 'lng' => -0.1])->assertOk();
+        $this->photo($first);
+        $this->postJson('/api/v1/visits/'.$first.'/events', [
+            'type' => 'check_out',
+            'payment_method' => 'cash',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertOk();
+
+        $invoice = Invoice::query()->firstOrFail();
+        $this->assertSame(1, $invoice->number);
+
+        $invoice->delete();
+        $this->assertSoftDeleted('invoices', ['id' => $invoice->id]);
+
+        $second = $this->postJson('/api/v1/visits', $this->body($client, $owner->id))->assertCreated()->json('id');
+        $this->postJson('/api/v1/visits/'.$second.'/events', ['type' => 'check_in', 'lat' => 51.5, 'lng' => -0.1])->assertOk();
+        $this->photo($second);
+        $this->postJson('/api/v1/visits/'.$second.'/events', [
+            'type' => 'check_out',
+            'payment_method' => 'invoice',
+            'lat' => 51.5,
+            'lng' => -0.1,
+        ])->assertOk();
+
+        $secondInvoice = Invoice::query()->firstOrFail();
+        $this->assertSame(2, $secondInvoice->number);
     }
 
     private function photo(int $visit): void

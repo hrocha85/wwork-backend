@@ -13,6 +13,7 @@ use App\Models\VisitPhoto;
 use App\Support\AgencyContext;
 use App\Support\ApiException;
 use App\Support\ErrorCodes;
+use App\Support\InvoiceShareToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -110,7 +111,7 @@ class GuestVisitController extends Controller
             'url' => rtrim((string) config('app.url'), '/').'/api/v1/client/visits/'.$model->id.'/photos/'.$photo->id,
         ])->values()->all();
         if ($payload['invoice'] !== null) {
-            $payload['invoice']['pdf_url'] = route('invoices.client.pdf', ['invoice' => $payload['invoice']['id']]);
+            $payload['invoice']['pdf_url'] = rtrim((string) config('app.url'), '/').'/api/v1/invoices/share/'.InvoiceShareToken::issue($payload['invoice']['id']);
         }
 
         return response()->json($payload);
