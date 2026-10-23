@@ -15,9 +15,13 @@ class InviteRequestController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'string', 'email:rfc', 'max:255'],
             'locale' => ['nullable', 'string', 'max:10'],
+            'trade' => ['nullable', 'string', 'max:255'],
         ]);
 
         $email = strtolower(trim($validated['email']));
+        $trade = isset($validated['trade']) && trim((string) $validated['trade']) !== ''
+            ? trim((string) $validated['trade'])
+            : null;
 
         // 1. Verifica se já é um usuário cadastrado no sistema
         if (User::query()->where('email', $email)->exists()) {
@@ -31,6 +35,10 @@ class InviteRequestController extends Controller
         // 2. Verifica se já solicitou convite anteriormente
         $existing = InviteRequest::query()->where('email', $email)->first();
         if ($existing) {
+            if ($trade && empty($existing->notes)) {
+                $existing->update(['notes' => $trade]);
+            }
+
             return response()->json([
                 'ok' => true,
                 'already_registered' => true,
@@ -45,6 +53,7 @@ class InviteRequestController extends Controller
             'ip_address' => $request->ip(),
             'user_agent' => substr((string) $request->userAgent(), 0, 500),
             'locale' => $validated['locale'] ?? app()->getLocale(),
+            'notes' => $trade,
         ]);
 
         return response()->json([
