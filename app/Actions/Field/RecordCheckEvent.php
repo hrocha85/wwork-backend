@@ -104,12 +104,14 @@ class RecordCheckEvent
                     $invoice = app(CreateInvoice::class)([
                         'client_id' => $visit->client_id,
                         'visit_ids' => [$visit->id],
+                        'locale' => request()->input('locale'),
                     ], true);
                     app(MarkInvoicePaid::class)($invoice, $visit->service_date?->toDateString(), null, true, 'cash');
                 } elseif ($paymentMethod === 'invoice') {
                     $invoice = app(CreateInvoice::class)([
                         'client_id' => $visit->client_id,
                         'visit_ids' => [$visit->id],
+                        'locale' => request()->input('locale'),
                     ], true);
                     $sharedInvoice = app(ShareInvoice::class)->issue($invoice);
                     $invoiceUrl = $sharedInvoice['pdf_url'] ?? null;

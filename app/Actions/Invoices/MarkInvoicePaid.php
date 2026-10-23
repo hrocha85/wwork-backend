@@ -45,6 +45,10 @@ class MarkInvoicePaid
         $invoice->paid_note = filled($note) ? $note : null;
         $invoice->save();
 
+        $path = app(\App\Services\InvoicePdf::class)->store($invoice->fresh(['agency', 'client', 'lines']));
+        $invoice->pdf_path = $path;
+        $invoice->save();
+
         RecordActivity::add($invoice->agency_id, $actor->id, 'invoice.paid');
 
         return $invoice;

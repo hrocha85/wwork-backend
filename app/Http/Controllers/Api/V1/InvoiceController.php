@@ -6,6 +6,7 @@ use App\Actions\Invoices\CreateInvoice;
 use App\Actions\Invoices\GetPendingInvoices;
 use App\Actions\Invoices\MarkInvoicePaid;
 use App\Actions\Invoices\ShareInvoice;
+use App\Services\InvoicePdf;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\PeriodRequest;
 use App\Http\Requests\Api\V1\StoreInvoiceRequest;
@@ -63,11 +64,13 @@ class InvoiceController extends Controller
         $model = $this->invoice($invoice);
         InvoiceResource::show($model);
 
-        if ($model->pdf_path === null || ! Storage::disk('local')->exists($model->pdf_path)) {
-            throw new ApiException(ErrorCodes::INVOICE_PDF_MISSING, 404);
+        $locale = request()->query('locale');
+        $pdfBytes = app(InvoicePdf::class)->render($model, $locale);
+        if ($model->pdf_path !== null) {
+            Storage::disk('local')->put($model->pdf_path, $pdfBytes);
         }
 
-        return response(Storage::disk('local')->get($model->pdf_path), 200, [
+        return response($pdfBytes, 200, [
             'Content-Type' => 'application/pdf',
         ]);
     }
@@ -95,11 +98,17 @@ class InvoiceController extends Controller
     {
         $invoice = Invoice::query()->find(InvoiceShareToken::invoiceId($token));
 
-        if ($invoice === null || $invoice->pdf_path === null || ! Storage::disk('local')->exists($invoice->pdf_path)) {
+        if ($invoice === null) {
             throw new ApiException(ErrorCodes::INVOICE_PDF_MISSING, 404);
         }
 
-        return response(Storage::disk('local')->get($invoice->pdf_path), 200, [
+        $locale = request()->query('locale');
+        $pdfBytes = app(InvoicePdf::class)->render($invoice, $locale);
+        if ($invoice->pdf_path !== null) {
+            Storage::disk('local')->put($invoice->pdf_path, $pdfBytes);
+        }
+
+        return response($pdfBytes, 200, [
             'Content-Type' => 'application/pdf',
         ]);
     }
