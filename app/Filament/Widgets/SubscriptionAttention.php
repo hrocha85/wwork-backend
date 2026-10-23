@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class SubscriptionAttention extends TableWidget
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 40;
 
     protected static bool $isLazy = false;
 

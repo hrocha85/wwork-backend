@@ -26,13 +26,17 @@ class LoginUser
 
         if ($user->membership === null && $user->clients->isEmpty()) {
             $guard->logout();
-            request()->session()->invalidate();
-            request()->session()->regenerateToken();
+            if (request()->hasSession()) {
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+            }
 
             throw new ApiException(ErrorCodes::AUTH_FAILED, 401);
         }
 
-        request()->session()->regenerate();
+        if (request()->hasSession()) {
+            request()->session()->regenerate();
+        }
         $user->forceFill(['last_seen_at' => now()])->save();
 
         if ($user->membership !== null) {

@@ -233,4 +233,14 @@ return [
     'services' => ['one' => 'Service', 'list_help' => 'Services from every agency, read only.', 'date' => 'Date', 'client' => 'Client', 'agency' => 'Agency', 'assignee' => 'Assignee', 'value' => 'Value', 'currency' => 'Currency', 'status' => 'Status', 'payment' => 'Payment', 'photos' => 'Photos', 'reviewed' => 'Reviewed'],
     'billing_invoices' => ['one' => 'Invoice', 'list_help' => 'Invoices from every agency, read only.', 'number' => 'Number', 'client' => 'Client', 'agency' => 'Agency', 'service_date' => 'Service date', 'total' => 'Total', 'currency' => 'Currency', 'status' => 'Status', 'paid_at' => 'Paid at', 'paid_method' => 'Plătită cu'],
     'ratings' => ['one' => 'Review', 'list_help' => 'Client reviews, read only.', 'rating' => 'Rating', 'comment' => 'Comment', 'client' => 'Client', 'agency' => 'Agency', 'service_date' => 'Service date'],
+    'installs' => [
+        'total' => 'Instalări aplicație',
+        'total_help' => 'Clicuri pentru a instala aplicația în perioadă.',
+        'pwa' => 'PWA (Browser)',
+        'pwa_help' => 'Web / Desktop / Android PWA',
+        'apple' => 'Apple iOS',
+        'apple_help' => 'Clicuri pentru iPhone / iPad',
+        'android' => 'Android',
+        'android_help' => 'Clicuri pentru dispozitive Android',
+    ],
 ];

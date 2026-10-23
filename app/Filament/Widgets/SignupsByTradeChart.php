@@ -16,9 +16,11 @@ class SignupsByTradeChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 10;
 
     protected static bool $isLazy = false;
+
+    protected int|string|array $columnSpan = 1;
 
     public function getHeading(): string|Htmlable|null
     {
