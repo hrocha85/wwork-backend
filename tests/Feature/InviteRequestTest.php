@@ -33,6 +33,21 @@ class InviteRequestTest extends TestCase
         ]);
     }
 
+    public function test_can_request_invite_with_trade(): void
+    {
+        $response = $this->postJson('/api/v1/invites/request', [
+            'email' => 'profissional@exemplo.com',
+            'locale' => 'pt',
+            'trade' => 'Limpeza e Pintura',
+        ]);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('invite_requests', [
+            'email' => 'profissional@exemplo.com',
+            'notes' => 'Limpeza e Pintura',
+        ]);
+    }
+
     public function test_validates_invalid_email_format(): void
     {
         $response = $this->postJson('/api/v1/invites/request', [
